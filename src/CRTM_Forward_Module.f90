@@ -996,7 +996,7 @@ CONTAINS
                   SfcOptics(nt)%Compute = .FALSE.
                   IF (Opt%Emissivity(ln) > ONE ) THEN
                      SfcOptics(nt)%Emissivity(1,1) = ONE
-                  ELSEIF  Opt%Emissivity(ln) < ZERO) THEN
+                  ELSEIF (Opt%Emissivity(ln) < ZERO) THEN
                      SfcOptics(nt)%Emissivity(1,1) = ZERO
                   ELSE
                      SfcOptics(nt)%Emissivity(1,1) = Opt%Emissivity(ln)
