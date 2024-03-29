@@ -1006,27 +1006,40 @@ CONTAINS
           SfcOptics%Compute       = .TRUE.
           SfcOptics_Clear%Compute = .TRUE.
           IF ( Opt%Use_Emissivity ) THEN
-            SfcOptics%Compute = .FALSE.
-            SfcOptics%Emissivity(1,1)       = Opt%Emissivity(ln)
-            SfcOptics%Reflectivity(1,1,1,1) = ONE - Opt%Emissivity(ln)
-            IF ( Opt%Use_Direct_Reflectivity ) THEN
-              SfcOptics%Direct_Reflectivity(1,1) = Opt%Direct_Reflectivity(ln)
-            ELSE
-              SfcOptics%Direct_Reflectivity(1,1) = SfcOptics%Reflectivity(1,1,1,1)
-            END IF
-            ! ...Repeat for fractional clear-sky case
-            IF ( CRTM_Atmosphere_IsFractional(cloud_coverage_flag) ) THEN
-              SfcOptics_Clear%Compute = .FALSE.
-              SfcOptics_Clear%Emissivity(1,1)       = Opt%Emissivity(ln)
-              SfcOptics_Clear%Reflectivity(1,1,1,1) = ONE - Opt%Emissivity(ln)
-              IF ( Opt%Use_Direct_Reflectivity ) THEN
-                SfcOptics_Clear%Direct_Reflectivity(1,1) = Opt%Direct_Reflectivity(ln)
-              ELSE
-                SfcOptics_Clear%Direct_Reflectivity(1,1) = SfcOptics%Reflectivity(1,1,1,1)
-              END IF
-            END IF
-          END IF
+             SfcOptics%Compute = .FALSE.             
+             IF (Opt%Emissivity(ln) > ONE) THEN
+                SfcOptics(nt)%Emissivity(1,1)       = ONE
+             ELSEIF (Opt%Emissivity(ln) < ZERO) THEN
+                SfcOptics(nt)%Emissivity(1,1)       = ZERO
+             ELSE
+                SfcOptics(nt)%Emissivity(1,1)       = Opt%Emissivity(ln)
+             END IF
+             SfcOptics%Reflectivity(1,1,1,1) = ONE - SfcOptics(nt)%Emissivity(1,1)
 
+             IF ( Opt%Use_Direct_Reflectivity ) THEN
+                IF ( Opt%Direct_Reflectivity(ln) > ONE) THEN
+                   SfcOptics%Direct_Reflectivity(1,1) = ONE
+                ELSEIF ( Opt%Direct_Reflectivity(ln) < ZERO) THEN
+                   SfcOptics%Direct_Reflectivity(1,1) = ZERO
+                ELSE
+                   SfcOptics%Direct_Reflectivity(1,1) = Opt%Direct_Reflectivity(ln)
+                END IF
+             ELSE
+                SfcOptics%Direct_Reflectivity(1,1) = SfcOptics%Reflectivity(1,1,1,1)
+             END IF
+             ! ...Repeat for fractional clear-sky case
+             IF ( CRTM_Atmosphere_IsFractional(cloud_coverage_flag) ) THEN
+                SfcOptics_Clear%Compute = .FALSE.
+                SfcOptics_Clear%Emissivity(1,1)       =  SfcOptics(nt)%Emissivity(1,1)
+                SfcOptics_Clear%Reflectivity(1,1,1,1) =  ONE - SfcOptics(nt)%Emissivity(1,1)
+                IF ( Opt%Use_Direct_Reflectivity ) THEN
+                   SfcOptics_Clear%Direct_Reflectivity(1,1) = SfcOptics%Direct_Reflectivity(1,1)
+                ELSE
+                   SfcOptics_Clear%Direct_Reflectivity(1,1) = SfcOptics%Reflectivity(1,1,1,1)
+                END IF
+             END IF
+          END IF
+          
 !  non scattering case, this condition may be changed for future surface reflectance 
   IF( .not.RTSolution(ln,m)%Scattering_FLAG .or. .not.AtmOptics%Include_Scattering ) RTV%n_Azi = 0
 !!!          IF( .not. RTV%Scattering_RT ) RTV%n_Azi = 0

@@ -191,7 +191,13 @@ CONTAINS
 
     ! Solar direct component
     IF ( SpcCoeff_IsSolar(SC(SensorIndex), ChannelIndex=ChannelIndex) ) THEN
-      SfcOptics%Direct_Reflectivity(:,1) = ONE - emissivity
+       IF (emissivity > ONE) THEN
+          SfcOptics%Direct_Reflectivity(:,1) = ZERO
+       ELSEIF (emissivity < ZERO) THEN
+          SfcOptics%Direct_Reflectivity(:,1) = ONE
+       ELSE
+          SfcOptics%Direct_Reflectivity(:,1) = ONE - emissivity
+       END IF
     END IF
 
 
