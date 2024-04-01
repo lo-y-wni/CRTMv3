@@ -1188,8 +1188,16 @@ CONTAINS
             IF ( Opt%Use_Emissivity ) THEN
               SfcOptics(nt)%Compute = .FALSE.
               IF (Opt%Emissivity(ln) > ONE) THEN 
+                 Error_Status = WARNING
+                 WRITE( Message,'("Warning Opt%Emissivity greater than 1.0:  (",G12.3,").  Setting to 1.0.")') &
+                      Opt%Emissivity(ln)
+                 CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
                  SfcOptics(nt)%Emissivity(1,1)       = ONE
               ELSEIF (Opt%Emissivity(ln) < ZERO) THEN 
+                 Error_Status = WARNING
+                 WRITE( Message,'("Warning Opt%Emissivityless than 0.0:  (",G12.3,").  Setting to 0.0.")') &
+                      Opt%Emissivity(ln)
+                 CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
                  SfcOptics(nt)%Emissivity(1,1)       = ZERO
               ELSE
                  SfcOptics(nt)%Emissivity(1,1)       = Opt%Emissivity(ln)
@@ -1197,14 +1205,22 @@ CONTAINS
               SfcOptics(nt)%Reflectivity(1,1,1,1) = ONE - SfcOptics(nt)%Emissivity(1,1)
               IF ( Opt%Use_Direct_Reflectivity ) THEN
                  IF (Opt%Direct_Reflectivity(ln) > ONE) THEN
+                    Error_Status = WARNING
+                    WRITE( Message,'("Warning Opt%Direct_Reflectivity greater than 1.0:  (",G12.3,").  Setting to 1.0.")') &
+                         Opt%Direct_Reflectivity(ln)
+                    CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
                     SfcOptics(nt)%Direct_Reflectivity(1,1) = ONE
-                ELSEIF (Opt%Direct_Reflectivity(ln) < ZERO) THEN
-                   SfcOptics(nt)%Direct_Reflectivity(1,1) = ZERO
-                ELSE
-                   SfcOptics(nt)%Direct_Reflectivity(1,1) = Opt%Direct_Reflectivity(ln)
-                END IF
+                 ELSEIF (Opt%Direct_Reflectivity(ln) < ZERO) THEN
+                    Error_Status = WARNING
+                    WRITE( Message,'("Warning Opt%Direct_Reflectivityless than 0.0:  (",G12.3,").  Setting to 0.0.")') &
+                         Opt%Direct_Reflectivity(ln)
+                    CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
+                    SfcOptics(nt)%Direct_Reflectivity(1,1) = ZERO
+                 ELSE
+                    SfcOptics(nt)%Direct_Reflectivity(1,1) = Opt%Direct_Reflectivity(ln)
+                 END IF
               ELSE
-                SfcOptics(nt)%Direct_Reflectivity(1,1) = SfcOptics(nt)%Reflectivity(1,1,1,1)
+                 SfcOptics(nt)%Direct_Reflectivity(1,1) = SfcOptics(nt)%Reflectivity(1,1,1,1)
               END IF
               ! ...Repeat for fractional clear-sky case
               IF ( CRTM_Atmosphere_IsFractional(cloud_coverage_flag) ) THEN

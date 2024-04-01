@@ -18,7 +18,7 @@ MODULE CRTM_VIS_Snow_SfcOptics
   ! -----------------
   ! Module use
   USE Type_Kinds               , ONLY: fp
-  USE Message_Handler          , ONLY: SUCCESS, Display_Message
+  USE Message_Handler          , ONLY: SUCCESS, WARNING, Display_Message
   USE Spectral_Units_Conversion, ONLY: Inverse_cm_to_Micron
   USE CRTM_Parameters          , ONLY: ZERO, ONE, MAX_N_ANGLES
   USE CRTM_SpcCoeff            , ONLY: SC
@@ -183,6 +183,20 @@ CONTAINS
 
 
     ! Solar direct component
+    IF (emissivity > ONE) THEN
+       err_stat = WARNING
+       WRITE( msg,'("Warning emissivity greater than 1.0:  (",G12.3,").  Setting to 1.0.")') &
+            emissivity
+       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+       emissivity = ONE
+    ELSEIF (emissivity < ZERO) THEN
+       err_stat = WARNING
+       WRITE( msg,'("Warning emissivity less than 0.0:  (",G12.3,").  Setting to 0.0.")') &
+            emissivity
+       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+       emissivity = ZERO
+    END IF
+    
     SfcOptics%Direct_Reflectivity(:,1) = ONE - emissivity
 
 
