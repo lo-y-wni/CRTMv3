@@ -1017,6 +1017,7 @@ CONTAINS
             ! ...Visible /UV channel with solar radiation
             IF((SpcCoeff_IsVisibleSensor(SC(SensorIndex)).or.SpcCoeff_IsUltravioletSensor(SC(SensorIndex))) &
                  .AND. RTV(nt)%Solar_Flag_true ) THEN
+              RTV(nt)%Visible_Flag_true = .true.
               ! Rayleigh phase function has 0, 1, 2 components.
               ! Make sure CRTM always use a minmum of 6 streams for visible calculation.
               IF( AtmOptics(nt)%n_Legendre_Terms == 4 ) THEN
