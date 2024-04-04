@@ -33,6 +33,7 @@ MODULE Binary_File_Utility
   PUBLIC :: ReadGAtts_Binary_File
   PUBLIC :: WriteLogical_Binary_File
   PUBLIC :: ReadLogical_Binary_File
+  PUBLIC :: Check_Binary_File
 
 
   ! -------------------
@@ -52,6 +53,8 @@ MODULE Binary_File_Utility
   ! ----------
   ! Parameters
   ! ----------
+  CHARACTER(*), PARAMETER :: MODULE_VERSION_ID = &
+  '$Id: Binary_File_Utility.f90 29405 2013-06-20 20:19:52Z paul.vandelst@noaa.gov $'
   ! Magic number header value for byte-swap checks
   INTEGER(Long), PARAMETER :: MAGIC_NUMBER = 123456789_Long
   ! Integer "logicals" for I/O
@@ -66,7 +69,7 @@ MODULE Binary_File_Utility
   CHARACTER(*), PARAMETER :: TITLE_GATTNAME        = 'title'
   CHARACTER(*), PARAMETER :: HISTORY_GATTNAME      = 'history'
   CHARACTER(*), PARAMETER :: COMMENT_GATTNAME      = 'comment'
-  
+
 
 CONTAINS
 
@@ -119,7 +122,7 @@ CONTAINS
 !       No_Check:         Set this logical argument to suppress the byte-order
 !                         check made on an existing file by NOT reading the file
 !                         header magic number.  Default action is to check the
-!                         file. This argument is ignored if the FOR_OUTPUT 
+!                         file. This argument is ignored if the FOR_OUTPUT
 !                         optional argument is set.
 !                         If == .FALSE., existing file magic number is read and the
 !                                        byte order is checked (DEFAULT)
@@ -188,17 +191,27 @@ CONTAINS
 
     ! Branch depending on type of file I/O
     IF ( file_input ) THEN
+      ! File is to be READ. If the file
+      ! does not exist, return an error
+      IF ( .NOT. File_Exists( Filename ) ) THEN
+        err_stat = FAILURE
+        msg = 'File '//TRIM(Filename)//' not found.'
+        CALL CleanUp(); RETURN
+      END IF
       ! Set OPEN keywords for READING
       file_status = 'OLD'
       file_action = 'READ'
+      WRITE(*,*) 'Set OPEN keywords for READING.'
     ELSE
+      ! File is to be WRITTEN.
       ! Set OPEN keywords for WRITING
       file_status = 'REPLACE'
       file_action = 'WRITE'
     END IF
 
-
+    file_check = .FALSE.
     ! Check the file byte order
+    WRITE(*,*) 'Checking file byte order.'
     IF ( file_check ) THEN
       err_stat = Check_Binary_File( Filename )
       IF ( err_stat /= SUCCESS ) THEN
@@ -209,6 +222,7 @@ CONTAINS
 
 
     ! Get a free unit number
+    WRITE(*,*) 'Getting free LUN.'
     FileID = Get_Lun()
     IF ( FileID < 0 ) THEN
       msg = 'Error obtaining file unit number for '//TRIM(Filename)
@@ -217,13 +231,30 @@ CONTAINS
 
 
     ! Open the file
-    OPEN( FileID, FILE   = Filename     , &
-                  STATUS = file_status  , &
-                  ACTION = file_action  , &
-                  ACCESS = 'SEQUENTIAL' , &
-                  FORM   = 'UNFORMATTED', &
-                  IOSTAT = io_stat      , &
-                  IOMSG  = io_msg         )
+    ! Distinguish between read and write access.
+    WRITE(*,*) 'For output status: '
+    WRITE(*,*) For_Output
+    IF ( For_Output .EQV. .TRUE.) THEN ! write
+    	OPEN( FileID, FILE   = Filename     , &
+                  	STATUS = file_status  , &
+                  	ACTION = file_action  , &
+                  	ACCESS = 'SEQUENTIAL' , &
+                  	FORM   = 'UNFORMATTED', &
+                  	CONVERT ='BIG_ENDIAN'      , &
+                  	IOSTAT = io_stat      , &
+                  	IOMSG  = io_msg         )
+    ELSE ! read
+        WRITE(*,*) 'Opening binary file for read access.'
+    	OPEN( FileID, FILE   = Filename     , &
+                  	STATUS = file_status  , &
+                  	ACTION = file_action  , &
+                  	ACCESS = 'SEQUENTIAL' , &
+                  	FORM   = 'UNFORMATTED', &
+                  	CONVERT = 'LITTLE_ENDIAN'      , &
+                  	IOSTAT = io_stat      , &
+                  	IOMSG  = io_msg         )
+    END IF 
+                
     IF ( io_stat /= 0 ) THEN
       msg = 'Error opening '//TRIM(Filename)//' - '//TRIM(io_msg)
       CALL CleanUp(); RETURN
@@ -244,9 +275,9 @@ CONTAINS
         CALL CleanUp(); RETURN
       END IF
     END IF
-    
+
   CONTAINS
-   
+
      SUBROUTINE CleanUp()
        IF ( File_Open(Filename) ) THEN
          CLOSE( FileID, IOSTAT=io_stat, IOMSG=io_msg )
@@ -276,7 +307,7 @@ CONTAINS
     ! Arguments
     INTEGER     ,           INTENT(IN) :: fid
     CHARACTER(*), OPTIONAL, INTENT(IN) :: Write_Module
-    CHARACTER(*), OPTIONAL, INTENT(IN) :: Created_On  
+    CHARACTER(*), OPTIONAL, INTENT(IN) :: Created_On
     CHARACTER(*), OPTIONAL, INTENT(IN) :: Title
     CHARACTER(*), OPTIONAL, INTENT(IN) :: History
     CHARACTER(*), OPTIONAL, INTENT(IN) :: Comment
@@ -299,7 +330,7 @@ CONTAINS
     ! Software ID
     CALL WriteSingleGAtt( WRITE_MODULE_GATTNAME, gattvalue = Write_Module )
     IF ( err_stat /= SUCCESS ) RETURN
-    
+
     ! Creation date/time
     CALL DATE_AND_TIME( cdate, ctime, czone )
     IF ( PRESENT(Created_On) ) THEN
@@ -327,9 +358,9 @@ CONTAINS
     ! The comment
     CALL WriteSingleGAtt( COMMENT_GATTNAME, gattvalue = Comment )
     IF ( err_stat /= SUCCESS ) RETURN
-    
+
   CONTAINS
-  
+
     SUBROUTINE WriteSingleGAtt(gattname, gattvalue)
       CHARACTER(*),           INTENT(IN) :: gattname
       CHARACTER(*), OPTIONAL, INTENT(IN) :: gattvalue
@@ -355,7 +386,7 @@ CONTAINS
         CALL WriteGatts_Cleanup(); RETURN
       END IF
     END SUBROUTINE WriteSingleGAtt
-     
+
     SUBROUTINE WriteGAtts_Cleanup()
       IF ( File_Open(fid) ) THEN
         CLOSE( fid, IOSTAT=io_stat, IOMSG=io_msg )
@@ -365,7 +396,7 @@ CONTAINS
       err_stat = FAILURE
       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
     END SUBROUTINE WriteGAtts_Cleanup
-    
+
   END FUNCTION WriteGAtts_Binary_File
 
 
@@ -383,7 +414,7 @@ CONTAINS
     ! Arguments
     INTEGER     ,           INTENT(IN)  :: fid
     CHARACTER(*), OPTIONAL, INTENT(OUT) :: Write_Module
-    CHARACTER(*), OPTIONAL, INTENT(OUT) :: Created_On  
+    CHARACTER(*), OPTIONAL, INTENT(OUT) :: Created_On
     CHARACTER(*), OPTIONAL, INTENT(OUT) :: Title
     CHARACTER(*), OPTIONAL, INTENT(OUT) :: History
     CHARACTER(*), OPTIONAL, INTENT(OUT) :: Comment
@@ -400,11 +431,11 @@ CONTAINS
     err_stat = SUCCESS
     msg = ''
 
-    ! 
+    !
     ! Software ID
     CALL ReadSingleGAtt( WRITE_MODULE_GATTNAME, gattvalue = Write_Module )
     IF ( err_stat /= SUCCESS ) RETURN
-    
+
     ! Creation date/time
     CALL ReadSingleGAtt( CREATED_ON_GATTNAME, gattvalue = Created_On )
     IF ( err_stat /= SUCCESS ) RETURN
@@ -423,9 +454,9 @@ CONTAINS
     ! The comment
     CALL ReadSingleGAtt( COMMENT_GATTNAME, gattvalue = Comment )
     IF ( err_stat /= SUCCESS ) RETURN
-    
+
   CONTAINS
-  
+
     SUBROUTINE ReadSingleGAtt( gattname, gattvalue)
       CHARACTER(*),           INTENT(IN)  :: gattname
       CHARACTER(*), OPTIONAL, INTENT(OUT) :: gattvalue
@@ -451,9 +482,9 @@ CONTAINS
       IF ( PRESENT(gattvalue) ) THEN
         i = INDEX(l_gattvalue,': ')
         gattvalue = l_gattvalue(i+2:gattlen)
-      END IF    
+      END IF
     END SUBROUTINE ReadSingleGAtt
-     
+
     SUBROUTINE ReadGAtts_Cleanup()
       IF ( File_Open(fid) ) THEN
         CLOSE( fid, IOSTAT=io_stat, IOMSG=io_msg )
@@ -463,7 +494,7 @@ CONTAINS
       err_stat = FAILURE
       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
     END SUBROUTINE ReadGAtts_Cleanup
-    
+
   END FUNCTION ReadGAtts_Binary_File
 
 
@@ -526,7 +557,7 @@ CONTAINS
     CHARACTER(ML) :: msg
     CHARACTER(ML) :: io_msg
     INTEGER :: io_stat
-    INTEGER(Long) :: logical_integer(SIZE(logical_value)) 
+    INTEGER(Long) :: logical_integer(SIZE(logical_value))
 
     ! Setup
     err_stat = SUCCESS
@@ -609,7 +640,7 @@ CONTAINS
     CHARACTER(ML) :: msg
     CHARACTER(ML) :: io_msg
     INTEGER :: io_stat
-    INTEGER(Long) :: logical_integer(SIZE(logical_value)) 
+    INTEGER(Long) :: logical_integer(SIZE(logical_value))
 
     ! Setup
     err_stat = SUCCESS
@@ -763,9 +794,9 @@ CONTAINS
       CALL CleanUp(); RETURN
 
     END IF
-    
+
   CONTAINS
-   
+
      SUBROUTINE CleanUp()
        IF ( File_Open(Filename) ) THEN
          CLOSE( fid, IOSTAT=io_stat, IOMSG=io_msg )

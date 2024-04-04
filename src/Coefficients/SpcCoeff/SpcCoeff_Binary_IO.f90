@@ -234,7 +234,7 @@ CONTAINS
        SpcCoeff%Is_Active_Sensor = .TRUE.
        SpcCoeff%Sensor_Type = SpcCoeff%Sensor_Type - ACTIVE_SENSOR
     END IF
-
+    
     ! Close the file
     CLOSE( fid, IOSTAT=io_stat )
     IF ( io_stat /= 0 ) THEN
@@ -360,7 +360,7 @@ CONTAINS
    
     ! Open the file
     IF ( File_Exists( Filename ) ) THEN
-      err_stat = Open_Binary_File( Filename, fid )
+      err_stat = Open_Binary_File( Filename, fid, For_Output=.FALSE.  )
       IF ( err_Stat /= SUCCESS ) THEN
         msg = 'Error opening '//TRIM(Filename)
         CALL Read_CleanUp(); RETURN
@@ -409,14 +409,14 @@ CONTAINS
       WRITE( msg,'("Error reading sensor ids. IOSTAT = ",i0)' ) io_stat
       CALL Read_Cleanup(); RETURN
     END IF
-
+    
     ! If the Sensor_Type us greater than ACTIVE_SENOR then set the Is_Active_Sensor flag
     ! and subtract the numebr so that subsequently it can be defined as MW/IR/VIS/UV
     IF (SpcCoeff%Sensor_Type .GT. ACTIVE_SENSOR) THEN
        SpcCoeff%Is_Active_Sensor = .TRUE.
        SpcCoeff%Sensor_Type = SpcCoeff%Sensor_Type - ACTIVE_SENSOR
     END IF
-
+    
     ! ...Read the channel data
     IF( dummy%Version > 2 ) THEN
       ! Binary coefficient version 3 introduced for TROPICS instrument.
@@ -673,15 +673,15 @@ CONTAINS
       WRITE( msg,'("Error writing data dimensions. IOSTAT = ",i0)' ) io_stat
       CALL Write_Cleanup(); RETURN
     END IF
-
+    
     ! If it Is_Active_Sensor then add ACTIVE_SENOR to Sensor_Type
     IF (SpcCoeff%Is_Active_Sensor) THEN
         Sensor_Type = SpcCoeff%Sensor_Type + ACTIVE_SENSOR
     ELSE
         Sensor_Type = SpcCoeff%Sensor_Type
     END IF
-
-
+    
+    
     ! ...Write the sensor info
     WRITE( fid, IOSTAT=io_stat ) &
       SpcCoeff%Sensor_Id       , &

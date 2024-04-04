@@ -20,9 +20,9 @@ PROGRAM SpcCoeff_BIN2NC
   USE CRTM_Module
   USE SpcCoeff_Define   , ONLY: SpcCoeff_type
   USE SpcCoeff_IO       , ONLY: SpcCoeff_Binary_to_netCDF
+  USE Endian_Utility    , ONLY: Big_Endian
   ! Disable implicit typing
   IMPLICIT NONE
-
 
   ! ----------
   ! Parameters
@@ -46,8 +46,12 @@ PROGRAM SpcCoeff_BIN2NC
                         'CRTM Version: '//TRIM(version_str) )
 
   ! Get the filenames
-  WRITE(*,FMT='(/5x,"Enter the INPUT Binary SpcCoeff filename : ")', ADVANCE='NO')
-  READ(*,'(a)') BIN_filename
+  IF ( Big_Endian() ) THEN
+     WRITE(*,FMT='(/5x,"Enter the INPUT Binary [Big Endian] SpcCoeff filename : ")', ADVANCE='NO')
+  ELSE
+     WRITE(*,FMT='(/5x,"Enter the INPUT Binary [Little Endian] SpcCoeff filename : ")', ADVANCE='NO')
+  END IF
+   READ(*,'(a)') BIN_filename
   BIN_filename = ADJUSTL(BIN_filename)
   WRITE(*,FMT='(/5x,"Enter the OUTPUT netCDF SpcCoeff filename: ")', ADVANCE='NO')
   READ(*,'(a)') NC_filename
