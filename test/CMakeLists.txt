@@ -255,6 +255,29 @@ add_test(NAME test_Unit_TL_TEST
          COMMAND $<TARGET_FILE:Unit_TL_TEST>)
 set_tests_properties(test_Unit_TL_TEST PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
+add_executable(Unit_Aerosol_Bypass mains/unit/Unit_Test/test_Aerosol_Bypass.f90)
+target_link_libraries(Unit_Aerosol_Bypass PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass
+         COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass>)
+set_tests_properties(test_Unit_Aerosol_Bypass PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+add_executable(Unit_Aerosol_Bypass_TL mains/unit/Unit_Test/test_Aerosol_Bypass_TL.f90)
+target_link_libraries(Unit_Aerosol_Bypass_TL PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass_TL
+	 COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_TL>)
+set_tests_properties(test_Unit_Aerosol_Bypass_TL PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+add_executable(Unit_Aerosol_Bypass_adjoint mains/unit/Unit_Test/test_Aerosol_Bypass_adjoint.f90)
+target_link_libraries(Unit_Aerosol_Bypass_adjoint PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass_adjoint
+	 COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_adjoint>)
+set_tests_properties(test_Unit_Aerosol_Bypass_adjoint  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+add_executable(Unit_Aerosol_Bypass_k_matrix mains/unit/Unit_Test/test_Aerosol_Bypass_k_matrix.f90)
+target_link_libraries(Unit_Aerosol_Bypass_k_matrix PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass_k_matrix
+         COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_k_matrix>)
+set_tests_properties(test_Unit_Aerosol_Bypass_k_matrix  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
 list (APPEND SCoeff_Tests
 	SpcCoeff_Edit
@@ -286,6 +309,7 @@ foreach(testtype IN LISTS TCoeff_Tests)
 		COMMAND $<TARGET_FILE:${testtype}> "testinput/atms_n21.TauCoeff.bin")
 	set_tests_properties(run_${testtype} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}" DISABLED ON)
 endforeach()
+
 
 
 #---------------------------------------------------------------------------------
