@@ -20,7 +20,7 @@ MODULE Common_RTSolution
                                        DEGREES_TO_RADIANS, &
                                        SECANT_DIFFUSIVITY, &
                                        SCATTERING_ALBEDO_THRESHOLD
-  USE Message_Handler,           ONLY: SUCCESS, Display_Message
+  USE Message_Handler,           ONLY: SUCCESS, WARNING, Display_Message
   USE CRTM_Atmosphere_Define,    ONLY: CRTM_Atmosphere_type
   USE CRTM_Surface_Define,       ONLY: CRTM_Surface_type
   USE CRTM_GeometryInfo_Define,  ONLY: CRTM_GeometryInfo_type
@@ -364,8 +364,28 @@ CONTAINS
     ! --------------------------------
     ! Populate the SfcOptics structure
     ! --------------------------------
+    ! Bounds checking
+    IF ( ANY(SfcOptics%Reflectivity < ZERO .OR. SfcOptics%Reflectivity > ONE) ) THEN
+       Error_Status = WARNING
+       WRITE( Message,'("WARNING SfcOptics%Reflectivity out of bounds [0,1]: ",2G12.5)' ) &
+            MINVAL(SfcOptics%Reflectivity), MAXVAL(SfcOptics%Reflectivity)
+       CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )        
+    END IF
+    IF ( ANY(SfcOptics%Emissivity < ZERO .OR. SfcOptics%Emissivity > ONE) ) THEN
+       Error_Status = WARNING
+       WRITE( Message,'("WARNING SfcOptics%Emissivity out of bounds [0,1]: ",2G12.5)' ) &
+            MINVAL(SfcOptics%Emissivity), MAXVAL(SfcOptics%Emissivity)
+       CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )        
+    END IF
+    IF ( ANY(SfcOptics%Direct_Reflectivity < ZERO .OR. SfcOptics%Direct_Reflectivity > ONE) ) THEN
+       Error_Status = WARNING
+       WRITE( Message,'("WARNING SfcOptics%Direct_Reflectivity(:,:) out of bounds [0,1]: ",2G12.5)' ) &
+            MINVAL(SfcOptics%Direct_Reflectivity), MAXVAL(SfcOptics%Direct_Reflectivity)
+       CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )        
+    END IF
+
     IF ( SfcOptics%Compute ) THEN
-!    print *,Surface%Water_Coverage,Surface%Land_Coverage,Surface%Snow_Coverage,Surface%Ice_Coverage
+
       Error_Status = CRTM_Compute_SfcOptics( &
                        Surface     , & ! Input
                        GeometryInfo, & ! Input
@@ -373,6 +393,25 @@ CONTAINS
                        ChannelIndex, & ! Input
                        SfcOptics   , & ! In/Output
                        RTV%SOV       ) ! Internal variable output
+      ! Bounds / error checking
+      IF ( ANY(SfcOptics%Reflectivity < ZERO .OR. SfcOptics%Reflectivity > ONE) ) THEN
+         Error_Status = WARNING
+         WRITE( Message,'("WARNING SfcOptics%Reflectivity out of bounds [0,1]: ",2G12.5)' ) &
+              MINVAL(SfcOptics%Reflectivity), MAXVAL(SfcOptics%Reflectivity)
+         CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )
+      END IF
+      IF ( ANY(SfcOptics%Emissivity < ZERO .OR. SfcOptics%Emissivity > ONE) ) THEN
+         Error_Status = WARNING
+         WRITE( Message,'("WARNING SfcOptics%Emissivity out of bounds [0,1]: ",2G12.5)' ) &
+              MINVAL(SfcOptics%Emissivity), MAXVAL(SfcOptics%Emissivity)
+         CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )
+      END IF
+      IF ( ANY(SfcOptics%Direct_Reflectivity < ZERO .OR. SfcOptics%Direct_Reflectivity > ONE) ) THEN
+         Error_Status = WARNING
+         WRITE( Message,'("WARNING SfcOptics%Direct_Reflectivity(:,:) out of bounds [0,1]: ",2G12.5)' ) &
+              MINVAL(SfcOptics%Direct_Reflectivity), MAXVAL(SfcOptics%Direct_Reflectivity)
+         CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )
+      END IF
 
       IF ( Error_Status /= SUCCESS ) THEN
         WRITE( Message,'("Error computing SfcOptics for ",a," channel ",i0)' ) &
@@ -382,49 +421,48 @@ CONTAINS
         RETURN
       END IF
 
-    ELSE
-      IF( RTV%Scattering_RT ) THEN
-        ! Replicate the user emissivity for all angles
-        SfcOptics%Reflectivity = ZERO
-        User_Emissivity = SfcOptics%Emissivity(1,1)
-        SfcOptics%Emissivity(1,1) = ZERO
-        Direct_Reflectivity = SfcOptics%Direct_Reflectivity(1,1)
-        SfcOptics%Emissivity(1:nZ,1) = User_Emissivity
-        ! Replicate the user reflectivities for all angles
-
-        SfcOptics%Direct_Reflectivity(1:nZ,1) = Direct_Reflectivity
-        IF( RTV%Diffuse_Surface) THEN
-          IF( RTV%mth_Azi == 0 ) THEN
-          DO i = 1, nZ
-            SfcOptics%Reflectivity(1:nZ, 1, i, 1) = (ONE-SfcOptics%Emissivity(i,1))*SfcOptics%Weight(i)
-          END DO
-          ELSE
-            SfcOptics%Reflectivity(1:nZ, 1, 1:nZ, 1) = ZERO
-            SfcOptics%Direct_Reflectivity(1:nZ,1) = ZERO
-            SfcOptics%Emissivity(1:nZ,1) = ZERO
-          END IF
-
-
-        ELSE ! Specular surface
-          DO i = 1, nZ
-            SfcOptics%Reflectivity(i, 1, i, 1) = (ONE-SfcOptics%Emissivity(i,1))
-          END DO
-        END IF
+   ELSE
+      IF( RTV%Scattering_RT ) THEN         
+         ! Replicate the user emissivity for all angles
+         SfcOptics%Reflectivity = ZERO
+         User_Emissivity = SfcOptics%Emissivity(1,1)
+         SfcOptics%Emissivity(1,1) = ZERO
+         Direct_Reflectivity = SfcOptics%Direct_Reflectivity(1,1)
+         SfcOptics%Emissivity(1:nZ,1) = User_Emissivity
+         ! Replicate the user reflectivities for all angles
+         
+         SfcOptics%Direct_Reflectivity(1:nZ,1) = Direct_Reflectivity
+         IF( RTV%Diffuse_Surface) THEN
+            IF( RTV%mth_Azi == 0 ) THEN
+               DO i = 1, nZ
+                  SfcOptics%Reflectivity(1:nZ, 1, i, 1) = (ONE - SfcOptics%Emissivity(i,1))*SfcOptics%Weight(i)
+               END DO
+            ELSE
+               SfcOptics%Reflectivity(1:nZ, 1, 1:nZ, 1) = ZERO
+               SfcOptics%Direct_Reflectivity(1:nZ,1) = ZERO
+               SfcOptics%Emissivity(1:nZ,1) = ZERO
+            END IF
+            
+            
+         ELSE ! Specular surface
+            DO i = 1, nZ
+               SfcOptics%Reflectivity(i, 1, i, 1) = (ONE - SfcOptics%Emissivity(i,1))
+            END DO
+         END IF
       ELSE
-          IF( RTV%mth_Azi == 0 ) THEN
+         IF( RTV%mth_Azi == 0 ) THEN
             User_Emissivity = SfcOptics%Emissivity(1,1)
             SfcOptics%Emissivity( SfcOptics%Index_Sat_Ang,1 ) = User_Emissivity
             SfcOptics%Reflectivity(1,1,1,1) = ONE - User_Emissivity
             Direct_Reflectivity = SfcOptics%Direct_Reflectivity(1,1)
             SfcOptics%Direct_Reflectivity(1,1) = Direct_Reflectivity
-          ELSE
+         ELSE
             User_Emissivity = ZERO
             SfcOptics%Emissivity( SfcOptics%Index_Sat_Ang,1 ) = ZERO
             SfcOptics%Reflectivity(1,1,1,1) = ZERO
             SfcOptics%Direct_Reflectivity(1,1) = ZERO
-          END IF
-      END IF
-
+         END IF
+      END IF    
     END IF
 
     ! ---------------------------

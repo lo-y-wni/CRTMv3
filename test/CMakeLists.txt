@@ -249,6 +249,13 @@ add_test(NAME test_check_crtm_random
 set_tests_properties(test_check_crtm_random PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
 
+add_executable(Options_TEST mains/unit/Unit_Test/Test_Options.f90)
+target_link_libraries(Options_TEST PRIVATE crtm)
+add_test(NAME test_Options_TEST
+         COMMAND $<TARGET_FILE:Options_TEST>)
+set_tests_properties(test_Options_TEST PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+
 add_executable(Unit_TL_TEST mains/unit/Unit_Test/test_TL.f90)
 target_link_libraries(Unit_TL_TEST PRIVATE crtm)
 add_test(NAME test_Unit_TL_TEST
