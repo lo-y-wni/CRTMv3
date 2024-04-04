@@ -17,7 +17,7 @@ MODULE CRTM_SEcategory
   ! -----------------
   ! Module use
   USE Type_Kinds        , ONLY: fp
-  USE Message_Handler   , ONLY: SUCCESS, WARNING, FAILURE, Display_Message
+  USE Message_Handler   , ONLY: SUCCESS, FAILURE, Display_Message
   USE CRTM_Parameters   , ONLY: ZERO, ONE
   USE CRTM_Interpolation, ONLY: NPTS        , &
                                 LPoly_type  , &
@@ -197,20 +197,6 @@ CONTAINS
 
     ! Perform Interpolation
     CALL interp_1D( SEcategory%Reflectance(iVar%i1:iVar%i2, Surface_Type), iVar%xlp, reflectance )
-    IF (reflectance > ONE) THEN
-       err_stat = WARNING
-       WRITE( msg,'("Warning reflectance greater than 1.0:  (",G12.3,").  Setting to 1.0.")') &
-            reflectance
-       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
-       reflectance = ONE
-    ELSEIF (emissivity < ZERO) THEN
-       err_stat = WARNING
-       WRITE( msg,'("Warning reflectance less than 0.0:  (",G12.3,").  Setting to 0.0.")') &
-            reflectance
-       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
-       reflectance = ZERO
-    END IF
-
     Emissivity = ONE - reflectance
 
   END FUNCTION SEcategory_Emissivity
