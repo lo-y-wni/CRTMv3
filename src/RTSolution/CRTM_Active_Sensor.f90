@@ -111,7 +111,7 @@ END FUNCTION Calculate_Height
 !       Subroutine to calculate cloud water density (mass/volume) and also height if not set yet
 !
 ! CALLING SEQUENCE:
-!       CALL Scale_Cloud_Water_Density(Atm, GeometryInfo)
+!       CALL Calculate_Cloud_Water_Density(Atm, GeometryInfo)
 !
 ! INPUT ARGUMENTS:
 !
@@ -120,12 +120,6 @@ END FUNCTION Calculate_Height
 !                       TYPE:       CRTM_Atmosphere_type
 !                       DIMENSION:  Scalar
 !                       ATTRIBUTES: INTENT(IN/OUT)
-!
-!       GeometryInfo:   Structure containing the view geometry data.
-!                       UNITS:      N/A
-!                       TYPE:       CRTM_GeometryInfo_type
-!                       DIMENSION:  Scalar
-!                       ATTRIBUTES: INTENT(IN)
 !
 !--------------------------------------------------------------------------------
 
