@@ -23,7 +23,7 @@ MODULE CRTM_Active_Sensor
                                       SpcCoeff_IsVisibleSensor   , &
                                       SpcCoeff_IsUltravioletSensor
   USE CRTM_Atmosphere_Define,   ONLY: CRTM_Atmosphere_type, &
-                                      H2O_ID
+                                      H2O_ID, MASS_MIXING_RATIO_UNITS
   USE CRTM_AtmOptics_Define,     ONLY: CRTM_AtmOptics_type
   USE CRTM_RTSolution_Define,    ONLY: CRTM_RTSolution_type
   USE Spectral_Units_Conversion, ONLY: GHz_to_inverse_cm
@@ -111,79 +111,6 @@ END FUNCTION Calculate_Height
 !       Subroutine to calculate cloud water density (mass/volume) and also height if not set yet
 !
 ! CALLING SEQUENCE:
-!       CALL Calculate_Cloud_Water_Density(Atm, GeometryInfo)
-!
-! INPUT ARGUMENTS:
-!
-!       Atm:            Structure containing the atmospheric state data.
-!                       UNITS:      N/A
-!                       TYPE:       CRTM_Atmosphere_type
-!                       DIMENSION:  Scalar
-!                       ATTRIBUTES: INTENT(IN/OUT)
-!
-!       GeometryInfo:   Structure containing the view geometry data.
-!                       UNITS:      N/A
-!                       TYPE:       CRTM_GeometryInfo_type
-!                       DIMENSION:  Scalar
-!                       ATTRIBUTES: INTENT(IN)
-!
-!--------------------------------------------------------------------------------
-
-SUBROUTINE Calculate_Cloud_Water_Density(Atm, &
-                                         GeometryInfo)
-
-   TYPE(CRTM_Atmosphere_type), INTENT(IN OUT)     :: Atm
-   TYPE(CRTM_GeometryInfo_type), OPTIONAL, INTENT(IN)     :: GeometryInfo
-   INTEGER :: n_Layers
-   REAL(fp), DIMENSION(Atm%n_Layers) :: delp, mmr, specific_humidity, kgm2_to_kgkg, rho_air
-   Integer :: n
-
-   ! Define the constants where they are used to compute other constants
-   REAL(fp), PARAMETER :: grav           = 9.80665;
-   REAL(fp), PARAMETER :: airmw          = 28.965;
-   REAL(fp), PARAMETER :: h2omw          = 18.015;
-   REAL(fp), PARAMETER :: runiv          = 8314.47;
-   REAL(fp), PARAMETER :: rdry           = runiv/airmw;
-   !REAL(fp), PARAMETER :: cpdry          = 3.5*rdry;
-   REAL(fp), PARAMETER :: rvap           = runiv/h2omw;
-   !REAL(fp), PARAMETER :: kappa          = rdry/cpdry;
-   !REAL(fp), PARAMETER :: epsilon        = h2omw/airmw;
-   REAL(fp), PARAMETER :: zvir           = rvap/rdry - 1.;
-
-   INTEGER  :: j, H2O_idx
-
-   n_Layers = Atm%n_Layers
-
-   !** locate the WV absorber ID
-   H2O_idx = 1
-   DO j = 1,Atm%n_Absorbers
-        IF (Atm%Absorber_ID(j) == H2O_ID) H2O_idx = j
-   END DO
-
-   delp = 100.0_fp * (Atm%Level_Pressure(1:n_Layers) - Atm%Level_Pressure(0:n_Layers-1)) ! in Pa
-
-   ! Calculate air denisty
-   specific_humidity = Atm%Absorber(:, H2O_idx)
-   rho_air = 100.0_fp * Atm%Pressure/(rdry* Atm%Temperature * (ONE + zvir * max(specific_humidity, ZERO)))
- 
-   kgm2_to_kgkg = grav / delp
-
-   DO n = 1, Atm%n_Clouds
-      mmr = Atm%Cloud(n)%Water_Content * kgm2_to_kgkg
-      Atm%Cloud(n)%Water_Density = mmr * rho_air
-   END DO
-
-END SUBROUTINE Calculate_Cloud_Water_Density
-
-!--------------------------------------------------------------------------------
-!
-! NAME:
-!       Scale_Cloud_Water_Density
-!
-! PURPOSE:
-!       Subroutine to calculate cloud water density (mass/volume) and also height if not set yet
-!
-! CALLING SEQUENCE:
 !       CALL Scale_Cloud_Water_Density(Atm, GeometryInfo)
 !
 ! INPUT ARGUMENTS:
@@ -202,10 +129,8 @@ END SUBROUTINE Calculate_Cloud_Water_Density
 !
 !--------------------------------------------------------------------------------
 
-SUBROUTINE Scale_Cloud_Water_Density(Atm, &
-                                         GeometryInfo)
+SUBROUTINE Calculate_Cloud_Water_Density(Atm)
    TYPE(CRTM_Atmosphere_type), INTENT(IN OUT)     :: Atm
-   TYPE(CRTM_GeometryInfo_type), OPTIONAL, INTENT(IN)     :: GeometryInfo
    INTEGER :: n_Layers
    REAL(fp) :: Height(0:Atm%n_Layers), dZ_m(Atm%n_Layers)
    Integer :: n
@@ -218,15 +143,12 @@ SUBROUTINE Scale_Cloud_Water_Density(Atm, &
    END IF
 
    dZ_m = (Atm%Height(0:n_Layers-1) - Atm%Height(1:n_Layers)) * ONE_THOUSAND
-   IF (PRESENT(GeometryInfo)) THEN
-       dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
-   ENDIF
 
    DO n = 1, Atm%n_Clouds
       Atm%Cloud(n)%Water_Density = Atm%Cloud(n)%Water_Content / dZ_m
    END DO
 
-END SUBROUTINE Scale_Cloud_Water_Density
+END SUBROUTINE Calculate_Cloud_Water_Density
 
 !--------------------------------------------------------------------------------
 !
@@ -423,7 +345,7 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE
         Height = Atm%Height
     ENDIF
-    dZ_m = (Atm%Height(0:Atm%n_Layers-1) - Atm%Height(1:Atm%n_Layers)) * ONE_THOUSAND
+    dZ_m = (Height(0:Atm%n_Layers-1) - Height(1:Atm%n_Layers)) * ONE_THOUSAND
     dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
 
     IF ( SpcCoeff_IsMicrowaveSensor(SC(SensorIndex)) ) THEN
@@ -447,8 +369,10 @@ END FUNCTION Water_Permittivity_Turner_2016
     P1 = (M6_MM6 * Wavelength_m**4.0_fp) / (PI**5.0_fp * Kw_2)
     P1 = P1 / dZ_m  ! dZ_m to convert water_content to m/v or cloud water density
     ! Calculate transmittance from top to layer k
+    ! Optical depth is not scaled for zenith angle
     DO k = 1, AtmOptics%n_layers
-       Transmittance(k) = EXP(-TWO * SUM(AtmOptics%optical_depth(1:k)))
+       Transmittance(k) = EXP(-TWO * SUM(AtmOptics%optical_depth(1:k) / &
+                               GeometryInfo%Cosine_Sensor_Zenith))
     END DO
 
     Reflectivity =  P1 * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
@@ -469,7 +393,6 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE WHERE
         RTSolution%Reflectivity_Attenuated = MISSING_REFL
     END WHERE
-
   END SUBROUTINE CRTM_Compute_Reflectivity
 
 
@@ -581,7 +504,7 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE
         Height = Atm%Height
     ENDIF
-    dZ_m = (Atm%Height(0:Atm%n_Layers-1) - Atm%Height(1:Atm%n_Layers)) * ONE_THOUSAND
+    dZ_m = (Height(0:Atm%n_Layers-1) - Height(1:Atm%n_Layers)) * ONE_THOUSAND
     dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
 
     IF ( SpcCoeff_IsMicrowaveSensor(SC(SensorIndex)) ) THEN
@@ -759,7 +682,7 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE
         Height = Atm%Height
     ENDIF
-    dZ_m = (Atm%Height(0:Atm%n_Layers-1) - Atm%Height(1:Atm%n_Layers)) * ONE_THOUSAND
+    dZ_m = (Height(0:Atm%n_Layers-1) - Height(1:Atm%n_Layers)) * ONE_THOUSAND
     dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
 
     IF ( SpcCoeff_IsMicrowaveSensor(SC(SensorIndex)) ) THEN
