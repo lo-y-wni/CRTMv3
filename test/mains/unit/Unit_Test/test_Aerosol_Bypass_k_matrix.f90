@@ -405,6 +405,7 @@ PROGRAM test_Aerosol_Bypass_k_matrix
       Message = 'Error creating temporary Surface_K save file for failed comparison'
       CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     END IF
+    STOP 1
   END IF
   ! ============================================================================
 
