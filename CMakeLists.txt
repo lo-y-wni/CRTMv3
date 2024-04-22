@@ -6,8 +6,6 @@ option(OPENMP "Build crtm with OpenMP support" ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
-set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path" FORCE)
-message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
 
 ## Configuration options
 include(${PROJECT_NAME}_compiler_flags)
