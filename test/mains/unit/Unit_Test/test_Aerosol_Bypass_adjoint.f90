@@ -128,18 +128,6 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   !     for which the CRTM was initialized
   ! ------------------------------------------
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
-  ! ============================================================================
-
-  DO ICASE = 1, 2
-
-    ! --------------------------------
-    IF (ICASE == 1) THEN
-      N_AEROSOLS = 2
-    END IF
-    IF (ICASE == 2) THEN
-      N_AEROSOLS = 3
-    END IF
-
 
   ! ============================================================================
   ! 3. **** ALLOCATE STRUCTURE ARRAYS ****
@@ -156,10 +144,21 @@ PROGRAM test_Aerosol_Bypass_Adjoint
     STOP 1
   END IF
 
+  ! ============================================================================
+
+  DO ICASE = 1, 2
+
+    ! --------------------------------
+    IF (ICASE == 1) THEN
+      N_AEROSOLS = 2
+    END IF
+    IF (ICASE == 2) THEN
+      N_AEROSOLS = 3
+    END IF
+
   ! 3b. Allocate the STRUCTURES
   ! ---------------------------
   ! The input FORWARD structure
-  print *, 'he input FORWARD structure'
   CALL CRTM_Atmosphere_Create( Atm, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
   IF ( ANY(.NOT. CRTM_Atmosphere_Associated(Atm)) ) THEN
     Message = 'Error allocating CRTM Atmosphere structure'
@@ -314,18 +313,6 @@ PROGRAM test_Aerosol_Bypass_Adjoint
     END IF
   END IF
 
-  IF (ICASE == 1) THEN
-    ! CALL CRTM_Atmosphere_Destroy(atm_AD)
-    ! CALL CRTM_Atmosphere_Destroy(Atmosphere_AD)
-    ! CALL CRTM_Atmosphere_Destroy(Atm)
-    !
-    ! CALL CRTM_Surface_Destroy(sfc_AD)
-    ! CALL CRTM_Surface_Destroy(Surface_AD)
-    ! CALL CRTM_Surface_Destroy(Sfc)
-
-    DEALLOCATE(RTSolution, RTSolution_AD, &
-               STAT = Allocate_Status)
-  END IF
 
   END DO !ICASE
 
@@ -360,6 +347,7 @@ PROGRAM test_Aerosol_Bypass_Adjoint
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
+
 
   ! 9d. Read the saved data
   ! -----------------------
@@ -399,7 +387,8 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   !   END IF
   ! END IF
   ! 9e.2 Surface
-  IF ( ALL(CRTM_Surface_Compare(Surface_AD, sfc_AD, n_SigFig=5)) ) THEN
+  ! IF ( ALL(CRTM_Surface_Compare(Surface_AD, sfc_AD, n_SigFig=5)) ) THEN
+  IF ( ALL(CRTM_Surface_Compare(Surface_AD, sfc_AD)) ) THEN
     Message = 'Surface_AD Adjoints are the same!'
     CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
   ELSE
