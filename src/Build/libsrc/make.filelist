@@ -117,6 +117,7 @@ FSRC_FILES = \
   CRTM_AncillaryInput_Define.f90 \
   SSU_Input_Define.f90 \
   Zeeman_Input_Define.f90 \
+  OP_Input_Define.f90 \
   CRTM_Parameters.f90 \
   CRTM_LifeCycle.f90 \
   CRTM_Forward_Module.f90 \

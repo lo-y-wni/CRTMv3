@@ -355,7 +355,7 @@ CONTAINS
 
     ! Create the output file
     err_stat = CreateFile( &
-                 Filename                 , &  ! Input
+                 Filename                , &  ! Input
                  OP%n_Channels           , &  ! Input
                  OP%n_Layers             , &  ! Input
                  OP%n_Phase_Elements     , &  ! Input
