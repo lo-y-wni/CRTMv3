@@ -4,8 +4,12 @@
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
 
 cmake_minimum_required (VERSION 3.12)
-project("CRTM_Tests" VERSION 1.0.1 LANGUAGES Fortran C)
+project("CRTM_Tests" VERSION 3.1.0 LANGUAGES Fortran C)
+
 enable_testing ()
+
+
+message (STATUS "Building tests for CRTM v${PROJECT_VERSION}.")
 
 list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 set( CMAKE_DIRECTORY_LABELS ${PROJECT_NAME} )
@@ -52,7 +56,7 @@ endif()
 
 
 
-# If local path to testfiles is defined don't download 
+# If local path to testfiles is defined don't download
 IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
   set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR}/fix )
   message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}")
@@ -60,32 +64,33 @@ IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
   set( CRTM_COEFFS_BRANCH "" )
 
 else() # Download CRTM coefficients
-  set( CRTM_COEFFS_BRANCH_PREFIX "crtm" )  #preserves the structure of the paths that have been used in jedi previously vs the local path above
-  set( CRTM_COEFFS_BRANCH "3.1.0_skylab_7.0" ) #this version is the CRTM version, not the jedi / skylab version (again, following prior installations -- I'm not tied to this in any way)
-  
-  set(CRTM_COEFFS_PATH ${CMAKE_BINARY_DIR}/test_data/${REPO_VERSION})
+  set( CRTM_COEFFS_BRANCH_PREFIX "" )  #preserves the structure of the paths that have been used in jedi previously vs the local path above
+  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.0.1_01252024" ) #this version is the CRTM version, not the jedi / skylab version (again, following prior installations -- I'm not tied to this in any way)
+
+  set(CRTM_COEFFS_PATH ${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION})
   file(MAKE_DIRECTORY ${CRTM_COEFFS_PATH})
-  
-  set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/file")
-  set(test_files_dirname crtm_coefficients_${CRTM_COEFFS_BRANCH}.tar.gz) 
-  set(checksum "29a9b6a77096006cc76dbbb9c9569b75") # MD5SUM
-  
+
+  set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/")
+  set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz)
+  set(checksum "b37602ea463be55451de1e61ff80b2ba") # MD5SUM of fix_REL-3.1.0.1_01252024.tgz
+
   set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
   set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
-  
+
   # Download during CMake configure step
   message(STATUS "Downloading CRTM coeffs files from: ${DOWNLOAD_URL} to ${DOWNLOAD_DEST}")
   file(DOWNLOAD ${DOWNLOAD_URL} ${DOWNLOAD_DEST}
     EXPECTED_MD5 ${checksum}
     SHOW_PROGRESS)
 
-  # -- UNTAR -- 
-  
-  # Define the directory to untar into
-  set(UNTAR_DEST "${CMAKE_BINARY_DIR}/test_data/${REPO_VERSION}")
+  # -- UNTAR --
 
+  # Define the directory to untar into
+  set(UNTAR_DEST "${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION}")
+	message(STATUS "Checking if ${UNTAR_DEST}/${CRTM_COEFFS_BRANCH} already exists...")
   # Only untar if the CHECK_PATH does not exist
-  if(NOT EXISTS ${UNTAR_DEST}/})
+  if(NOT EXISTS ${UNTAR_DEST}/${CRTM_COEFFS_BRANCH}/)
+		message(STATUS "Untarring the downloaded file (~2 minutes) to ${UNTAR_DEST}")
     execute_process(COMMAND tar -xzf ${DOWNLOAD_DEST} -C ${UNTAR_DEST}
                     RESULT_VARIABLE result
                     OUTPUT_QUIET ERROR_QUIET)
@@ -125,7 +130,7 @@ list( APPEND ScatteringSwitch_Sensor_Ids
 list( APPEND SOI_Sensor_Ids
         atms_n21
         cris-fsr_n21
-        v.abi_g18 
+        v.abi_g18
         atms_npp
         cris399_npp
         v.abi_gr
@@ -136,7 +141,7 @@ list( APPEND SOI_Sensor_Ids
 list( APPEND VerticalCoordinates_Sensor_Ids
         atms_n21
         cris-fsr_n21
-        v.abi_g18 
+        v.abi_g18
         atms_npp
         cris399_npp
         v.abi_gr
@@ -233,7 +238,7 @@ list (APPEND TLAD_tests
 
 add_executable(test_check_crtm mains/application/check_crtm.F90)
 target_link_libraries(test_check_crtm PRIVATE crtm)
-add_test(NAME test_check_crtm 
+add_test(NAME test_check_crtm
          COMMAND test_check_crtm)
 set_tests_properties(test_check_crtm PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
@@ -250,6 +255,29 @@ add_test(NAME test_Unit_TL_TEST
          COMMAND $<TARGET_FILE:Unit_TL_TEST>)
 set_tests_properties(test_Unit_TL_TEST PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
+add_executable(Unit_Aerosol_Bypass mains/unit/Unit_Test/test_Aerosol_Bypass.f90)
+target_link_libraries(Unit_Aerosol_Bypass PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass
+         COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass>)
+set_tests_properties(test_Unit_Aerosol_Bypass PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+add_executable(Unit_Aerosol_Bypass_TL mains/unit/Unit_Test/test_Aerosol_Bypass_TL.f90)
+target_link_libraries(Unit_Aerosol_Bypass_TL PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass_TL
+	 COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_TL>)
+set_tests_properties(test_Unit_Aerosol_Bypass_TL PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+add_executable(Unit_Aerosol_Bypass_adjoint mains/unit/Unit_Test/test_Aerosol_Bypass_adjoint.f90)
+target_link_libraries(Unit_Aerosol_Bypass_adjoint PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass_adjoint
+	 COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_adjoint>)
+set_tests_properties(test_Unit_Aerosol_Bypass_adjoint  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+add_executable(Unit_Aerosol_Bypass_k_matrix mains/unit/Unit_Test/test_Aerosol_Bypass_k_matrix.f90)
+target_link_libraries(Unit_Aerosol_Bypass_k_matrix PRIVATE crtm)
+add_test(NAME test_Unit_Aerosol_Bypass_k_matrix
+         COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_k_matrix>)
+set_tests_properties(test_Unit_Aerosol_Bypass_k_matrix  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
 add_executable(SpcCoeff_Inspect mains/application/SpcCoeff_Inspect.f90)
 target_link_libraries(SpcCoeff_Inspect PRIVATE crtm)
@@ -532,6 +560,6 @@ CREATE_SYMLINK_FILENAME( $ENV{CRTM_TEST_ROOT}/mains/unit/Unit_Test
 
 # Symlink all CRTM files
 # Version 3
-CREATE_SYMLINK_FILENAME( ${CRTM_COEFFS_PATH}/${CRTM_COEFFS_BRANCH_PREFIX}/${CRTM_COEFFS_BRANCH}
+CREATE_SYMLINK_FILENAME( ${CRTM_COEFFS_PATH}/${CRTM_COEFFS_BRANCH_PREFIX}/${CRTM_COEFFS_BRANCH}/fix
                          ${CMAKE_CURRENT_BINARY_DIR}/testinput
                          ${crtm_test_input} )

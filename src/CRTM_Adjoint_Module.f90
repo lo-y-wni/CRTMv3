@@ -898,8 +898,12 @@ CONTAINS
           IF( (SpcCoeff_IsVisibleSensor(SC(SensorIndex)).or.SpcCoeff_IsUltravioletSensor(SC(SensorIndex))) &
                 .AND. RTV%Solar_Flag_true ) THEN
             RTV%Visible_Flag_true = .TRUE.
+            ! Two cases
+            ! (1) If clear sky, AtmOptics(nt)%n_Legendre_Terms == 0, compute Rayleigh scattering
+            ! (2) If aerosol/cloud and MieParameter < 0.01_fp, AtmOptics(nt)%n_Legendre_Terms == 4
+            !     Follow the legacy code, make sure RTSolution(ln,m)%n_Full_Streams == 6 for visible channels
             ! Rayleigh phase function has 0, 1, 2 components.
-            IF( AtmOptics%n_Legendre_Terms < 4 ) THEN
+            IF( AtmOptics%n_Legendre_Terms <= 4 ) THEN
               AtmOptics%n_Legendre_Terms = 4
               AtmOptics_AD%n_Legendre_Terms = AtmOptics%n_Legendre_Terms
               RTSolution(ln,m)%Scattering_FLAG = .TRUE.

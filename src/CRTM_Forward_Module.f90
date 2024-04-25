@@ -911,8 +911,12 @@ CONTAINS
                IF ( (SpcCoeff_IsVisibleSensor(SC(SensorIndex)).OR.SpcCoeff_IsUltravioletSensor(SC(SensorIndex))) &
                     .AND. RTV(nt)%Solar_Flag_true ) THEN
                   RTV%Visible_Flag_true = .TRUE.
+                  ! Two cases
+                  ! (1) If clear sky, AtmOptics(nt)%n_Legendre_Terms == 0, compute Rayleigh scattering
+                  ! (2) If aerosol/cloud and MieParameter < 0.01_fp, AtmOptics(nt)%n_Legendre_Terms == 4
+                  !     Follow the legacy code, make sure RTSolution(ln,m)%n_Full_Streams == 6 for visible channels
                   ! Rayleigh phase function has 0, 1, 2 components.
-                  IF( AtmOptics(nt)%n_Legendre_Terms < 4 ) THEN
+                  IF( AtmOptics(nt)%n_Legendre_Terms <= 4 ) THEN
                      AtmOptics(nt)%n_Legendre_Terms = 4
                      RTSolution(ln,m)%Scattering_FLAG = .TRUE.
                      RTSolution(ln,m)%n_Full_Streams = AtmOptics(nt)%n_Legendre_Terms + 2
@@ -1148,7 +1152,7 @@ CONTAINS
 
                END DO Azimuth_Fourier_Loop
 
-               ! Combine cloudy and clear radiances for fractional cloud coverage
+               ! Combine cloudy and clear outputs for fractional cloud coverage
                IF ( CRTM_Atmosphere_IsFractional(cloud_coverage_flag) ) THEN
                   DO ks = 1, RTV(nt)%n_Stokes
                      RTSolution(ln,m)%Stokes(ks) = &
@@ -1158,6 +1162,10 @@ CONTAINS
                      RTSolution(ln,m)%Total_Cloud_Cover = CloudCover%Total_Cloud_Cover
                   END DO
                   RTSolution(ln,m)%Radiance = RTSolution(ln,m)%Stokes(1)
+                  !...Reflectance
+                  RTSolution(ln,m)%Reflectance = &
+                        ((ONE - CloudCover%Total_Cloud_Cover) * RTSolution_Clear(nt)%Reflectance) + &
+                        (CloudCover%Total_Cloud_Cover * RTSolution(ln,m)%Reflectance)
                END IF
 
                ! The radiance post-processing

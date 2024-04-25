@@ -369,7 +369,6 @@ CONTAINS
       CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )
       RETURN
     END IF
-
   END FUNCTION CRTM_Compute_RTSolution
 
 !--------------------------------------------------------------------------------
@@ -1244,19 +1243,19 @@ CONTAINS
 
     ! Determine the number of streams based on Mie parameter
     IF ( MieParameter < 0.01_fp ) THEN
-      nStreams = 2
+      nStreams = 4
+      RTSolution%n_full_Streams  = 4
     ELSE IF( MieParameter < ONE ) THEN
       nStreams = 4
+      RTSolution%n_full_Streams  = 6
     ELSE
       nStreams = 6
+      RTSolution%n_full_Streams  = 8
     END IF
-
-! Hardcode number of streams for testing purposes
-!    nStreams = 6
-
+  
+    
     ! Set RTSolution scattering info
     RTSolution%Scattering_Flag = .TRUE.
-    RTSolution%n_full_Streams  = nStreams + 2
 
   END FUNCTION CRTM_Compute_nStreams
   
