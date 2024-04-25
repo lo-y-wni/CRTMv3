@@ -257,6 +257,13 @@ add_test(NAME run_SpcCoeff_Inspect
          COMMAND $<TARGET_FILE:SpcCoeff_Inspect> "testinput/atms_n21.SpcCoeff.bin")
 set_tests_properties(run_SpcCoeff_Inspect PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
+add_executable(Unit_OP_TEST mains/unit/Unit_Test/test_OP.f90)
+target_link_libraries(Unit_OP_TEST PRIVATE crtm)
+add_test(NAME test_Unit_OP_TEST
+         COMMAND $<TARGET_FILE:Unit_OP_TEST>)
+set_tests_properties(test_Unit_OP_TEST PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
+
 #---------------------------------------------------------------------------------
 #unit tests
 
@@ -517,6 +524,11 @@ SpcCoeff/Little_Endian/ssu_n09.SpcCoeff.bin
 SpcCoeff/Little_Endian/ssu_n11.SpcCoeff.bin
 SpcCoeff/Little_Endian/ssu_n14.SpcCoeff.bin
 )
+
+# Symlink OP test data
+CREATE_SYMLINK_FILENAME( $ENV{CRTM_TEST_ROOT}/mains/unit/Unit_Test
+		                 ${CMAKE_CURRENT_BINARY_DIR}/testinput
+				 TOP_SingleProfile.nc )
 
 # Symlink all CRTM files
 # Version 3
