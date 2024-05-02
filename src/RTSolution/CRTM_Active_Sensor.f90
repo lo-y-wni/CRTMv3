@@ -30,6 +30,7 @@ MODULE CRTM_Active_Sensor
   USE Fundamental_Constants,     ONLY: PI
   USE ODPS_CoordinateMapping,     ONLY: Geopotential_Height
   USE CRTM_GeometryInfo_Define, ONLY: CRTM_GeometryInfo_type
+  USE Message_Handler         , ONLY: Display_Message
 
   ! Disable all implicit typing
   IMPLICIT NONE
@@ -129,6 +130,13 @@ SUBROUTINE Calculate_Cloud_Water_Density(Atm)
    REAL(fp) :: Height(0:Atm%n_Layers), dZ_m(Atm%n_Layers)
    Integer :: n
 
+    ! Function result
+    INTEGER :: Error_Status
+    ! Local parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Calculate_Cloud_Water_Density'
+    ! Local variables
+    CHARACTER(256) :: Message
+
    n_Layers = Atm%n_Layers
 
    ! Calculate heights if hasn't been set already
@@ -137,6 +145,13 @@ SUBROUTINE Calculate_Cloud_Water_Density(Atm)
    END IF
 
    dZ_m = (Atm%Height(0:n_Layers-1) - Atm%Height(1:n_Layers)) * ONE_THOUSAND
+
+   IF (ANY(dZ_m <= 0)) THEN
+      Message = 'Error in calculating cloud water density - layer thickness needs to be greater than zero!'
+      CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )
+      RETURN
+    END IF
+
 
    DO n = 1, Atm%n_Clouds
       Atm%Cloud(n)%Water_Density = Atm%Cloud(n)%Water_Content / dZ_m
@@ -361,14 +376,14 @@ END FUNCTION Water_Permittivity_Turner_2016
     Kw_2 = ABS(kw)**TWO
 
     P1 = (M6_MM6 * Wavelength_m**4.0_fp) / (PI**5.0_fp * Kw_2)
-    P1 = P1 / dZ_m  ! dZ_m to convert water_content to m/v or cloud water density
+    P1 = P1 / dZ_m  ! dZ_m to convert BackScatter coefficient from unitless to 1/cm
     ! Calculate transmittance from top to layer k
     ! Optical depth is not scaled for zenith angle
     DO k = 1, AtmOptics%n_layers
        Transmittance(k) = EXP(-TWO * SUM(AtmOptics%optical_depth(1:k) / &
                                GeometryInfo%Cosine_Sensor_Zenith))
     END DO
-
+    
     Reflectivity =  P1 * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
     Reflectivity_Attenuated = P1 * Transmittance * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
 
