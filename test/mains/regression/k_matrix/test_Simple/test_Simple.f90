@@ -1,4 +1,5 @@
 !
+!
 ! test_Simple
 !
 ! Test program for the CRTM K-Matrix function including clouds and aerosols.
@@ -53,7 +54,7 @@ PROGRAM test_Simple
   INTEGER :: Error_Status
   INTEGER :: Allocate_Status
   INTEGER :: n_Channels
-  INTEGER :: l, m
+  INTEGER :: l, m, nc
   ! Declarations for Jacobian comparisons
   INTEGER :: n_la, n_ma
   INTEGER :: n_ls, n_ms
@@ -73,6 +74,8 @@ PROGRAM test_Simple
   TYPE(CRTM_Atmosphere_type)              :: Atm(N_PROFILES)
   TYPE(CRTM_Surface_type)                 :: Sfc(N_PROFILES)
   TYPE(CRTM_RTSolution_type), ALLOCATABLE :: RTSolution(:,:)
+  TYPE(CRTM_RTSolution_type), ALLOCATABLE :: RTSolution_forward(:,:)
+
 
   ! Define the K-MATRIX variables
   TYPE(CRTM_Atmosphere_type), ALLOCATABLE :: Atmosphere_K(:,:)
@@ -133,6 +136,7 @@ PROGRAM test_Simple
   ! 3a. Allocate the ARRAYS
   ! -----------------------
   ALLOCATE( RTSolution( n_Channels, N_PROFILES ), &
+            RTSolution_forward( n_Channels, N_PROFILES ), &
             atm_K( n_Channels, N_PROFILES ), &
             Atmosphere_K( n_Channels, N_PROFILES ), &
             Surface_K( n_Channels, N_PROFILES ), &
@@ -160,7 +164,7 @@ PROGRAM test_Simple
     Message = 'Error allocating CRTM Atmosphere_K structure'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
-  END IF 
+  END IF
   ! Deleted in V2.4.1
   ! The comparative K-MATRIX structure inside the results file
   !CALL CRTM_Atmosphere_Create( atm_K, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
@@ -183,6 +187,11 @@ PROGRAM test_Simple
   CALL Load_Atm_Data()
   CALL Load_Sfc_Data()
 
+  DO m = 1, 2
+    DO nc = 1, atm(m)%n_Clouds
+      WHERE(atm(m)%Cloud(nc)%Water_Content > ZERO) atm(m)%Cloud_Fraction = 0.5
+    END DO
+  END DO
 
   ! 4b. GeometryInfo input
   ! ----------------------
@@ -226,7 +235,20 @@ PROGRAM test_Simple
 
   ! ============================================================================
   ! 6. **** CALL THE CRTM K-MATRIX MODEL ****
-  !
+
+  ! ============================================================================
+  ! Temporary test CRTM forward versus k_matrix
+  Error_Status = CRTM_Forward( Atm        , &
+                               Sfc        , &
+                               Geometry   , &
+                               ChannelInfo, &
+                               RTSolution_forward  )
+  IF ( Error_Status /= SUCCESS ) THEN
+    Message = 'Error in CRTM Forward Model'
+    CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
+    STOP 1
+  END IF
+
   Error_Status = CRTM_K_Matrix( Atm         , &
                                 Sfc         , &
                                 RTSolution_K, &
@@ -240,27 +262,48 @@ PROGRAM test_Simple
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
-  ! ============================================================================
 
-
-
+  ! Compare the RT structures
+  ! --------------------------
+  IF ( ALL(CRTM_RTSolution_Compare(RTSolution, RTSolution_forward)) ) THEN
+    Message = 'RTSolution results are the same! (Forward vs. K_Matrix)'
+    CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
+  ELSE
+    Message = 'RTSolution results are different!'
+    CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
+    STOP 1
+  END IF
 
   ! ============================================================================
   ! 7. **** OUTPUT THE RESULTS TO SCREEN ****
   !
-  DO m = 1, N_PROFILES
-    WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)
-    DO l = 1, n_Channels
-      WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
-      ! FWD output
-      WRITE( *, '(/3x,"FORWARD OUTPUT")')
-      CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
-      ! K-MATRIX output
-      WRITE( *, '(/3x,"K-MATRIX OUTPUT")')
-      CALL CRTM_Surface_Inspect(Surface_K(l,m))
-      CALL CRTM_Atmosphere_Inspect(Atmosphere_K(l,m))
-    END DO
-  END DO
+  ! DO m = 1, N_PROFILES
+  !   WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)
+  !   DO l = 1, n_Channels
+  !     WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
+  !     ! FWD output
+  !     WRITE( *, '(/3x,"FORWARD OUTPUT")')
+  !     CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
+  !     ! K-MATRIX output
+  !     WRITE( *, '(/3x,"K-MATRIX OUTPUT")')
+  !     CALL CRTM_Surface_Inspect(Surface_K(l,m))
+  !     CALL CRTM_Atmosphere_Inspect(Atmosphere_K(l,m))
+  !   END DO
+  ! END DO
+  !
+  ! DO m = 1, N_PROFILES
+  !   WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)
+  !   DO l = 1, n_Channels
+  !     WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution_forward(l,m)%Sensor_Channel
+  !     ! FWD output
+  !     WRITE( *, '(/3x,"FORWARD OUTPUT")')
+  !     CALL CRTM_RTSolution_Inspect(RTSolution_forward(l,m))
+  !     ! K-MATRIX output
+  !     WRITE( *, '(/3x,"K-MATRIX OUTPUT")')
+  !     CALL CRTM_Surface_Inspect(Surface_K(l,m))
+  !     CALL CRTM_Atmosphere_Inspect(Atmosphere_K(l,m))
+  !   END DO
+  ! END DO
   ! ============================================================================
 
 

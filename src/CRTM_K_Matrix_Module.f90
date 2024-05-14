@@ -1083,7 +1083,7 @@ CONTAINS
               ! (2) If aerosol/cloud and MieParameter < 0.01_fp, AtmOptics(nt)%n_Legendre_Terms == 4
               !     Follow the legacy code, make sure RTSolution(ln,m)%n_Full_Streams == 6 for visible channels
               ! Rayleigh phase function has 0, 1, 2 components.
-              IF( AtmOptics(nt)%n_Legendre_Terms <= 4 ) THEN                
+              IF( AtmOptics(nt)%n_Legendre_Terms <= 4 ) THEN
                 AtmOptics(nt)%n_Legendre_Terms = 4
                 AtmOptics_K(nt)%n_Legendre_Terms = AtmOptics(nt)%n_Legendre_Terms
                 RTSolution(ln,m)%Scattering_FLAG = .TRUE.
@@ -1315,6 +1315,7 @@ CONTAINS
                                            ChannelIndex, SensorIndex, &
                                            compute_antenna_correction, GeometryInfo)
 
+
               !======= Active sensor =======
               ! Calculate reflectivity for active instruments
               IF  ( SC(SensorIndex)%Is_Active_Sensor .AND. AtmOptics(nt)%Include_Scattering) THEN
@@ -1326,12 +1327,13 @@ CONTAINS
                                                  RTSolution(ln,m))   ! Input/Output
               ENDIF
               !=============================
-           
 
-           IF ( SpcCoeff_IsInfraredSensor( SC(SensorIndex) ) .OR. &
-               SpcCoeff_IsMicrowaveSensor( SC(SensorIndex) ) ) THEN
+
+           ! IF ( SpcCoeff_IsInfraredSensor( SC(SensorIndex) ) .OR. &
+           !     SpcCoeff_IsMicrowaveSensor( SC(SensorIndex) ) ) THEN
               ! Perform clear-sky post and pre-processing
               IF ( CRTM_Atmosphere_IsFractional(cloud_coverage_flag) ) THEN
+
                 ! Radiance post-processing
                 CALL Post_Process_RTSolution(Opt, RTSolution_Clear(nt), &
                                              NLTE_Predictor, &
@@ -1360,9 +1362,15 @@ CONTAINS
 
              END IF
 
+             !** output Tb_clear in the case of n_clouds = 0  (note this is NOT aerosol cleared)
+             IF (Atm%n_Clouds == 0 .OR. CloudCover%Total_Cloud_Cover < MIN_COVERAGE_THRESHOLD) THEN
+                RTSolution(ln,m)%Tb_clear = RTSolution(ln,m)%Brightness_Temperature
+                RTSolution(ln,m)%R_clear  = RTSolution(ln,m)%Radiance
+             END IF
+
            END IF
 
-         END IF
+         !END IF
 
           IF ( CRTM_Atmosphere_IsFractional(cloud_coverage_flag).and.RTV(nt)%mth_Azi==0 ) THEN
                 ! The adjoint of the clear sky radiative transfer for fractionally cloudy atmospheres
@@ -1418,8 +1426,8 @@ CONTAINS
                 END IF
                 ! Calculate the adjoint for the active sensor reflectivity
                 IF  ( SC(SensorIndex)%Is_Active_Sensor .AND. AtmOptics(nt)%Include_Scattering) THEN
-                    CALL CRTM_Compute_Reflectivity_AD(Atm             , &  ! Input 
-                                                      AtmOptics(nt)   , &  ! Input 
+                    CALL CRTM_Compute_Reflectivity_AD(Atm             , &  ! Input
+                                                      AtmOptics(nt)   , &  ! Input
                                                       RTSolution(ln,m), & ! Input
                                                       GeometryInfo    , & ! Input
                                                       SensorIndex     , &  ! Input
