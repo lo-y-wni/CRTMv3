@@ -1034,7 +1034,7 @@ CONTAINS
                   Error_Status = CRTM_Compute_RTSolution( &
                                         Atm             , &  ! Input
                                         Surface(m)      , &  ! Input
-                                        AtmOptics(nt)     &  ! Input
+                                        AtmOptics(nt)   , &  ! Input
                                         SfcOptics(nt)   , &  ! Input
                                         GeometryInfo    , &  ! Input
                                         SensorIndex     , &  ! Input
