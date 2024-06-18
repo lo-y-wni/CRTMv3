@@ -70,13 +70,8 @@ install(FILES
 # Install the export set for use with the install-tree
 install(EXPORT ${PROJECT_NAME}-config
 	FILE "${PROJECT_NAME}-targets.cmake"
-	#FILE "${PROJECT_NAME}-config.cmake"
         NAMESPACE ${PROJECT_NAME}::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
-
-#export(EXPORT ${PROJECT_NAME}-config
-#        FILE "${PROJECT_NAME}-targets.cmake"
-#        NAMESPACE ${PROJECT_NAME}::)
 
 add_subdirectory(test)
 include(CTest)
