@@ -477,7 +477,8 @@ CONTAINS !=================== Internal subroutines =============================
       END DO                                                                                                  
 
       DO m = 1, n_Profiles                                                                                    
-         n_Layers   = Atm(m)%n_Layers
+         n_Layers = Atm(m)%n_Layers
+         write(fid) n_Layers
 
          DO l = 1, n_Channels                                                                                  
          DO k = 1, n_Layers
