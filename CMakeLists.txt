@@ -70,7 +70,8 @@ install(FILES
 # Install the export set for use with the install-tree
 install(EXPORT ${PROJECT_NAME}-config
 	FILE "${PROJECT_NAME}-targets.cmake"
-        NAMESPACE ${PROJECT_NAME}::
+	# Note: NAMESPACEs need downstream JEDI changes to link crtm::crtm instead of just crtm.
+	#NAMESPACE ${PROJECT_NAME}::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 add_subdirectory(test)
