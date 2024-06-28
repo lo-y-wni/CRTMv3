@@ -74,6 +74,11 @@ install(EXPORT ${PROJECT_NAME}-config
 	#NAMESPACE ${PROJECT_NAME}::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
+# For build-tree linkage
+export(EXPORT ${PROJECT_NAME}-config
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-targets.cmake"
+)
+
 add_subdirectory(test)
 include(CTest)
 
