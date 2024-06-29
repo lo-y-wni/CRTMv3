@@ -442,13 +442,14 @@ CONTAINS !=================== Internal subroutines =============================
                         &" channel ",i0, ", n_Layers = ", i0)') m, TRIM(ChannelInfo%Sensor_ID),& 
                          ChannelInfo%Sensor_Channel(l), Atm(m)%n_Layers
             
-            WRITE( fid,'(/6x, a, i0)')" Pressure(mb)    Reflectivity      Reflectivity_Attenuated"
+            WRITE( fid,'(/6x, a, i0)')" Pressure(mb)  Height(km)  Reflectivity  Reflectivity_Attenuated"
             
             DO k = 1, Atm(m)%n_Layers                                                                           
-              data_out(1:3) = [ Atm(m)%Pressure(k), &
+              data_out(1:4) = [ Atm(m)%Pressure(k), &
+                                Atm(m)%Height(k), &
                                 RTSolution(l, m)%Reflectivity(k), &                  
                                 RTSolution(l, m)%Reflectivity_Attenuated(k)]                                   
-              WRITE( fid,'(7x,f8.3,2x,es13.6,2x,es13.6)' ) data_out(1:3)                                        
+              WRITE( fid,'(7x,f8.3,2x,f8.2,2x,es13.6,2x,es13.6)' ) data_out(1:4)                                        
             END DO                                                                                              
       END DO                                                                                                
       END DO                                                                                                  
@@ -465,7 +466,6 @@ CONTAINS !=================== Internal subroutines =============================
       TYPE(CRTM_RTSolution_type),  INTENT( IN )  :: RTSolution(:,:)
       ! Local
       INTEGER  :: l, k, m, n_Profiles, n_Layers
-      REAL(fp) :: data_out(100)
       
       n_Channels = SIZE(RTSolution, DIM=1)
       n_Profiles = SIZE(RTSolution, DIM=2)
@@ -483,6 +483,7 @@ CONTAINS !=================== Internal subroutines =============================
          DO l = 1, n_Channels                                                                                  
          DO k = 1, n_Layers
             write(fid) Atm(m)%Pressure(k), &
+                       Atm(m)%Height(k), &
                        RTSolution(l, m)%Reflectivity(k), &                  
                        RTSolution(l, m)%Reflectivity_Attenuated(k)                                
          END DO                                                                                                
