@@ -231,7 +231,7 @@ CONTAINS !=================== Internal subroutines =============================
       SELECT CASE( TRIM( ProfID ) )
       case( "2BCLDGPM", "CLOUDSAT" ) 
 
-         CALL load_atm_sfc_geo_2BCLDGPM( atm, sfc, geo, input_Filename )
+         CALL load_atm_sfc_geo_CloudSat( atm, sfc, geo, input_Filename )
    
       CASE DEFAULT
          Error_Status = FAILURE 
@@ -246,7 +246,7 @@ CONTAINS !=================== Internal subroutines =============================
 
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
-   subroutine load_atm_sfc_geo_2BCLDGPM( atm, sfc, geo, input_Filename )
+   subroutine load_atm_sfc_geo_CloudSat( atm, sfc, geo, input_Filename )
    !----------------------------------------------------------------------------
       USE CRTM_Module    ,ONLY: CRTM_Atmosphere_type, &
                                 CRTM_Surface_type, &
