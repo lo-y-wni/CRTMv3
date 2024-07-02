@@ -6,6 +6,9 @@ option(OPENMP "Build crtm with OpenMP support" ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path" )
+message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
+
 
 ## Configuration options
 include(${PROJECT_NAME}_compiler_flags)
@@ -60,19 +63,22 @@ write_basic_package_version_file(
 )
 
 # Install the generated or configured files
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/crtm-config.cmake"
+install(FILES 
+              "${CMAKE_CURRENT_BINARY_DIR}/crtm-config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/crtm-config-version.cmake"
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 # Install the export set for use with the install-tree
 install(EXPORT ${PROJECT_NAME}-config
-        FILE "${PROJECT_NAME}-targets.cmake"
-        NAMESPACE ${PROJECT_NAME}::
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+	FILE "${PROJECT_NAME}-targets.cmake"
+	# Note: NAMESPACEs need downstream JEDI changes to link crtm::crtm instead of just crtm.
+	#NAMESPACE ${PROJECT_NAME}::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
+# For build-tree linkage
 export(EXPORT ${PROJECT_NAME}-config
-        FILE "${PROJECT_NAME}-targets.cmake"
-        NAMESPACE ${PROJECT_NAME}::)
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-targets.cmake"
+)
 
 add_subdirectory(test)
 include(CTest)
