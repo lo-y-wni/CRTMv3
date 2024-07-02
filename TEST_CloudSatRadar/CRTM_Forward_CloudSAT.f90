@@ -23,7 +23,7 @@ PROGRAM CRTM_Forward_CloudSAT
   TYPE(CRTM_ChannelInfo_type)             :: ChannelInfo(N_SENSORS)
   TYPE( CRTM_RTSolution_type ), ALLOCATABLE, DIMENSION( :,: ) :: RTSolution
   TYPE( CRTM_Options_type ), ALLOCATABLE  :: Options(:)
-  INTEGER :: n_PROFILES, n_Stokes
+  INTEGER :: n_PROFILES, n_Stokes, FOUTbin
   INTEGER :: n_Layers, n_Absorbers, n_Clouds, n_Aerosols, chan_index
   CHARACTER( 256 ) :: CRTM_INPUT_FILE
 !
@@ -32,12 +32,25 @@ PROGRAM CRTM_Forward_CloudSAT
   print *,trim(Sensor_ID(1))
   READ(11,'(A)') CRTM_INPUT_FILE
 !
-  Error_Status = CRTM_Init( Sensor_Id, &  ! Input... must be an array, hence the (/../)
-         ChannelInfo  , &  ! Output
-         CloudCoeff_File='Cloud_V3.bin', &
-         AerosolCoeff_File='Aerosol_V3.bin', & 
-         File_Path='../CRTM_coeff/') 
-!
+   Error_Status = CRTM_Init( Sensor_Id, &
+                             ChannelInfo, &
+                             Aerosol_Model       = 'CRTM', &
+                             AerosolCoeff_Format = 'netCDF', &
+                             AerosolCoeff_File   = './testinput/AerosolCoeff.nc4', &
+!!                             AerosolCoeff_File   = './testinput/Aerosol_V3.bin', &
+                             Cloud_Model         = 'CRTM', & 
+                             CloudCoeff_Format   = "netCDF", &
+!!                             CloudCoeff_File     = './testinput/CloudCoeff.nc', &
+                             CloudCoeff_File     = './testinput/Cloud_V3.nc', &
+!!                             CloudCoeff_File     = './testinput/CloudCoeff.nc4', &
+                             SpcCoeff_Format     = 'netCDF', &
+                             TauCoeff_Format     = 'netCDF', &
+         File_Path='./testinput/') 
+
+
+   SC(1)%Is_Active_Sensor  = .TRUE.
+
+
   n_Channels = sum(CRTM_ChannelInfo_n_Channels(ChannelInfo(:))  ) 
   n_Stokes = 1   ! Using scalar RT model
 
@@ -76,14 +89,15 @@ PROGRAM CRTM_Forward_CloudSAT
 !
 
    m = 1368
+   print *,' m = ',m,Atmosphere(m:m)%n_Clouds
    Options(m)%Use_n_Streams = .true.
    Options(m)%n_Streams = 8
-   Error_Status = CRTM_Forward( Atmosphere(m:m) , &  
-                               Surface(m:m)    , & 
-                               Geometry(m:m)   , &  
-                               ChannelInfo, &  
-                               RTSolution(:,m:m),  &
-                               Options = Options(m:m) )
+!   Error_Status = CRTM_Forward( Atmosphere(m:m) , &  
+!                               Surface(m:m)    , & 
+!                               Geometry(m:m)   , &  
+!                               ChannelInfo, &  
+!                               RTSolution(:,m:m),  &
+!                               Options = Options(m:m) )
 
   print *,'  channel     Frequency    Radiance    Brightness Temperature '
     DO k = 1, n_Channels
@@ -92,6 +106,8 @@ PROGRAM CRTM_Forward_CloudSAT
     END DO
 
 !  IF(m > 0) STOP
+   print *,'Prf 1 ',atmosphere(1)%n_Clouds,atmosphere(1)%n_layers, &
+    atmosphere(1)%level_pressure(atmosphere(1)%n_layers)
 
    Error_Status = CRTM_ActiveSensor( Atmosphere , &  
                                Surface    , & 
@@ -102,15 +118,22 @@ PROGRAM CRTM_Forward_CloudSAT
 
  print *,' Error_Status ',Error_Status
 
-
-
-
+!
+ FOUTbin = 61
+ CLOSE(FOUTbin)
+ OPEN(FOUTbin,file='cpr_ref.bin', FORM='unformatted', STATUS = 'REPLACE', ACCESS='STREAM', &
+     CONVERT='LITTLE_ENDIAN')
+   print *,' height ',maxval(Atmosphere(1)%Height(:)), minval(Atmosphere(1)%Height(:))
+ CALL Dump_Result(FOUTbin, ChannelInfo(1), Atmosphere, RTSolution)     
+ CLOSE(FOUTbin)
+ OPEN(FOUTbin,file='cpr_ref.txt', FORM='formatted', STATUS = 'REPLACE')
+ CALL Print_Result(FOUTbin, ChannelInfo(1), Atmosphere, RTSolution)
  CLOSE(60)
  DO m = 1, n_Profiles
 !   IF(maxval(RTSolution(1,m)%Reflectivity_Attenuated) > 0.0 ) THEN
 !     print *,m, maxval(RTSolution(1,m)%Reflectivity_Attenuated), &
 !       maxval(RTSolution(1,m)%Reflectivity)
-     write(60,'(I10,10f10.3)') m, maxval(RTSolution(1,m)%Reflectivity_Attenuated), &
+     write(60,'(I10,10f12.5)') m, maxval(RTSolution(1,m)%Reflectivity_Attenuated), &
        maxval(RTSolution(1,m)%Reflectivity), &
        (maxval(Atmosphere(m)%Cloud(j)%Water_Content),j=1,4), &
        (maxval(Atmosphere(m)%Cloud(j)%Effective_Radius),j=1,4)
@@ -125,5 +148,89 @@ PROGRAM CRTM_Forward_CloudSAT
  END DO
  511 FORMAT(I5,3f9.3,6E12.3)
  CLOSE(60)
+ 
+ CONTAINS
+
+   !----------------------------------------------------------------------------
+   SUBROUTINE Print_Result(fid, ChannelInfo, Atm, RTSolution)
+   !----------------------------------------------------------------------------
+      INTEGER,                     INTENT( IN )  :: fid
+      TYPE(CRTM_ChannelInfo_type), INTENT( IN )  :: ChannelInfo
+      TYPE(CRTM_Atmosphere_type),  INTENT( IN )  :: Atm(:)
+      TYPE(CRTM_RTSolution_type),  INTENT( IN )  :: RTSolution(:,:)
+
+      ! Local
+      INTEGER  :: l, k, m, n_Profiles
+      REAL(fp) :: data_out(100)
+      
+      n_Channels = SIZE(RTSolution, DIM=1)
+      n_Profiles = SIZE(RTSolution, DIM=2)
+      
+      DO m = 1, n_Profiles
+      DO l = 1, n_Channels                                                                                  
+                                                                                                               
+            WRITE( fid, '(/7x,"Profile ",i0," Reflectivity for ",a,&
+                        &" channel ",i0, ", n_Layers = ", i0)') m, TRIM(ChannelInfo%Sensor_ID),& 
+                         ChannelInfo%Sensor_Channel(l), Atm(m)%n_Layers
+            
+            WRITE( fid,'(/6x, a, i0)')" Pressure(mb)    Reflectivity      Reflectivity_Attenuated"
+            
+            DO k = 1, Atm(m)%n_Layers                                                                           
+              data_out(1:3) = [ Atm(m)%Pressure(k), &
+                                RTSolution(l, m)%Reflectivity(k), &                  
+                                RTSolution(l, m)%Reflectivity_Attenuated(k)]                                   
+              WRITE( fid,'(7x,f8.3,2x,es13.6,2x,es13.6)' ) data_out(1:3)                                        
+            END DO                                                                                              
+      END DO                                                                                                
+      END DO                                                                                                  
+   END SUBROUTINE Print_Result
+
+    !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
+   SUBROUTINE Dump_Result(fid, ChannelInfo, Atm, RTSolution)
+   !----------------------------------------------------------------------------
+      INTEGER,                     INTENT( IN )  :: fid
+      TYPE(CRTM_ChannelInfo_type), INTENT( IN )  :: ChannelInfo
+      TYPE(CRTM_Atmosphere_type),  INTENT( IN )  :: Atm(:)
+      TYPE(CRTM_RTSolution_type),  INTENT( IN )  :: RTSolution(:,:)
+      ! Local
+      INTEGER  :: l, k, m, n_Profiles, n_Layers
+      REAL(fp) :: data_out(100)
+      
+      n_Channels = SIZE(RTSolution, DIM=1)
+      n_Profiles = SIZE(RTSolution, DIM=2)
+
+    print *,' dump to a binary file ',n_Channels, n_Profiles
+    print *,Atm(1)%n_Layers
+    DO k = 1, Atm(1)%n_Layers
+      write(6,'(I5,3f12.4,4E15.6)') k, Atm(1)%Pressure(k), &
+                       RTSolution(1, 1)%Reflectivity(k), &                  
+                       RTSolution(1, 1)%Reflectivity_Attenuated(k), &
+             Atm(1)%Cloud(:)%Water_Content(k)
+    END DO 
+    
+      write(fid) n_Channels, n_Profiles
+
+      DO l = 1, n_Channels
+         write(fid) ChannelInfo%Sensor_Channel(l)
+      END DO                                                                                                  
+
+      DO m = 1, n_Profiles                                                                                    
+         n_Layers = Atm(m)%n_Layers
+         write(fid) n_Layers
+
+         DO l = 1, n_Channels                                                                                  
+         DO k = 1, n_Layers
+            write(fid) Atm(m)%Pressure(k), &
+                       Atm(m)%Height(k), &
+                       RTSolution(l, m)%Reflectivity(k), &                  
+                       RTSolution(l, m)%Reflectivity_Attenuated(k)                                
+         END DO                                                                                                
+         END DO                                                                                                
+      END DO                                                                                                  
+
+   END SUBROUTINE Dump_Result
+ 
+ 
 END PROGRAM CRTM_Forward_CloudSAT
 !   
