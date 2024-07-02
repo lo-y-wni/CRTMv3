@@ -35,7 +35,8 @@ MODULE ActiveSensor_Model
   USE CRTM_Utility
   USE RTV_Define
   USE Liu, ONLY: pVar_type => iVar_type, &
-      Ocean_Permittivity => Liu_Ocean_Permittivity
+      Ocean_Permittivity => Liu_Ocean_Permittivity, &
+      Ocean_Permittivity_TL => Liu_Ocean_Permittivity_TL
   ! Disable all implicit typing
   IMPLICIT NONE
 
@@ -47,7 +48,8 @@ MODULE ActiveSensor_Model
   ! RTSolution structure entities
   ! ...Datatypes
   ! Module procedures
-  PUBLIC :: Radar_Solution
+  PUBLIC :: Radar_Solution, Radar_Solution_TL, Radar_Solution_AD
+  
   REAL(fp), PARAMETER :: M6_MM6 = 1.0d18
   REAL(fp), PARAMETER :: REFLECTIVITY_THRESHOLD = TINY(REAL(fp))
   ! -----------------
@@ -214,13 +216,228 @@ CONTAINS
     CHARACTER(256) :: Message
     INTEGER :: i, k, nZ, H2O_idx
     REAL(fp), PARAMETER :: Temperature0 = 273.16_fp, Salinity0 = 0.0_fp
+    REAL(fp) :: Temperature0_TL, Salinity0_TL
     REAL(fp), PARAMETER :: Light_speed = 29.979246_fp
     REAL(fp) :: Frequency, Wavelength_meter,kw2
-    REAL(fp) :: Level_Transmittance(0:size(deltaZ))
+    REAL(fp) :: Level_Transmittance(0:size(deltaZ)), Level_Transmittance_TL(0:size(deltaZ))
     REAL(fp), DIMENSION(size(deltaZ)) :: dZ, R, Reflectivity, Reflectivity_Attenuated
+    REAL(fp), DIMENSION(size(deltaZ)) :: Reflectivity_TL, Reflectivity_Attenuated_TL
     COMPLEX(fp) :: Permittivity
     Error_Status = SUCCESS
 
+    nZ = Atmosphere%n_Layers
+    dZ = deltaZ * 1000.0_fp ! in meters
+    dZ = dZ/GeometryInfo%Cosine_Sensor_Zenith
+    ! Calculate the geometric heights of the pressure levels in km 
+    Frequency = wavenumber * Light_speed  ! in GHz
+    Wavelength_meter = 0.01_fp /wavenumber
+!
+    CALL Ocean_Permittivity( &
+    Temperature0 , & ! Input
+    Salinity0    , & ! Input
+    Frequency   , & ! Input
+    Permittivity, & ! Output
+    iVar          ) ! Internal variable output   
+!
+    Temperature0_TL = 0.0_fp
+    Salinity0_TL = 0.0_fp
+!!    CALL Ocean_Permittivity_TL( &
+!!    Temperature0_TL , &  ! TL Input
+!!    Salinity0_TL    , &  ! TL Input                             
+!!    Frequency      , &  ! Invariant input
+!!    Permittivity_TL, &  ! TL Output
+!!    iVar             )  ! Internal variable input
+
+    kw2 = ABS((Permittivity - ONE )/(Permittivity + TWO))**2
+!   
+    R = (M6_MM6 * Wavelength_meter**FOUR) / (PI**FIVE * Kw2)
+    R = R / dZ  ! dZ_m to convert water_content to m/v or cloud water density
+    ! Calculate level transmittance from top to layer k
+    Level_Transmittance(0) = ONE
+    DO k = 1, nZ
+       Level_transmittance(k) = Level_transmittance(k-1)* &
+       EXP(-TWO * AtmOptics%Optical_Depth(k))
+    END DO
+    Reflectivity =  R * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
+    Reflectivity_Attenuated = Reflectivity * Level_transmittance(0:nZ-1)
+    ! Convert the unit to dBz
+    WHERE (Reflectivity .GT.  REFLECTIVITY_THRESHOLD)
+        RTSolution%Reflectivity = TEN * LOG10(Reflectivity) ! [dBZ]
+    ELSE WHERE
+        RTSolution%Reflectivity = MISSING_REFL
+    END WHERE  
+!
+    WHERE (Reflectivity_Attenuated .GT.  REFLECTIVITY_THRESHOLD)
+        RTSolution%Reflectivity_Attenuated = TEN * LOG10(Reflectivity_Attenuated)
+    ELSE WHERE
+        RTSolution%Reflectivity_Attenuated = MISSING_REFL
+    END WHERE 
+  END FUNCTION Radar_Solution
+!
+  FUNCTION Radar_Solution_TL( &
+    Atmosphere  , &  ! Input
+    Surface     , &  ! Input
+    AtmOptics   , &  ! Input
+    SfcOptics   , &  ! Input
+    GeometryInfo, &  ! Input
+    SensorIndex , &  ! Input
+    ChannelIndex, &  ! Input
+    deltaZ      , &  ! Input
+    wavenumber  , &  ! Input
+    Atmosphere_TL   , &  ! Input
+    Surface_TL      , &  ! Input
+    AtmOptics_TL    , &  ! Input
+    SfcOptics_TL    , &  ! Input                    
+    RTSolution, &  ! Output
+    RTSolution_TL, &  ! Output        
+    RTV         ) &  ! Internal variable output
+  RESULT( Error_Status )
+    ! Arguments
+! -----------------------------------------------------------------------
+!  Temperature0 = 273.16 was used in radar reflectivity product.
+!  The complex number Permittivity_TL needs to set to "Zero".
+!  Pressure profile was assumed unchanged, therefore deltaZ_TL = Zero.
+! -----------------------------------------------------------------------
+    TYPE(CRTM_Atmosphere_type),   INTENT(IN)     :: Atmosphere, Atmosphere_TL
+    TYPE(CRTM_Surface_type),      INTENT(IN)     :: Surface, Surface_TL
+    TYPE(CRTM_AtmOptics_type),    INTENT(IN)     :: AtmOptics, AtmOptics_TL
+    TYPE(CRTM_SfcOptics_type),    INTENT(IN OUT) :: SfcOptics, SfcOptics_TL
+    TYPE(CRTM_GeometryInfo_type), INTENT(IN OUT) :: GeometryInfo
+    REAL(fp), INTENT(IN) :: deltaZ(:), wavenumber
+    INTEGER,                      INTENT(IN)     :: SensorIndex
+    INTEGER,                      INTENT(IN)     :: ChannelIndex
+    TYPE(CRTM_RTSolution_type),   INTENT(IN OUT) :: RTSolution, RTSolution_TL
+    TYPE(RTV_type),               INTENT(IN OUT) :: RTV
+    TYPE(pVar_type):: iVar
+
+    ! Function result
+    INTEGER :: Error_Status
+    ! Local parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Radar_Solution_TL'
+    ! Local variables
+    CHARACTER(256) :: Message
+    INTEGER :: i, k, nZ, H2O_idx
+    REAL(fp), PARAMETER :: Temperature0 = 273.16_fp, Salinity0 = 0.0_fp
+    REAL(fp), PARAMETER :: Light_speed = 29.979246_fp
+    REAL(fp) :: Frequency, Wavelength_meter,kw2
+    REAL(fp) :: Level_Transmittance(0:size(deltaZ)),Level_Transmittance_TL(0:size(deltaZ))
+    REAL(fp), DIMENSION(size(deltaZ)) :: dZ, R, Reflectivity, Reflectivity_Attenuated
+    REAL(fp), DIMENSION(size(deltaZ)) :: Reflectivity_TL, Reflectivity_Attenuated_TL
+    COMPLEX(fp) :: Permittivity
+    Error_Status = SUCCESS
+
+    nZ = Atmosphere%n_Layers
+    dZ = deltaZ * 1000.0_fp ! in meters
+    dZ = dZ/GeometryInfo%Cosine_Sensor_Zenith
+    ! Calculate the geometric heights of the pressure levels in km 
+    Frequency = wavenumber * Light_speed  ! in GHz
+    Wavelength_meter = 0.01_fp /wavenumber
+!
+    CALL Ocean_Permittivity( &
+    Temperature0 , & ! Input
+    Salinity0    , & ! Input
+    Frequency   , & ! Input
+    Permittivity, & ! Output
+    iVar          ) ! Internal variable output   
+!
+    kw2 = ABS((Permittivity - ONE )/(Permittivity + TWO))**2
+!   
+    R = (M6_MM6 * Wavelength_meter**FOUR) / (PI**FIVE * Kw2)
+    R = R / dZ  ! dZ_m to convert water_content to m/v or cloud water density
+    ! Calculate level transmittance from top to layer k
+    Level_Transmittance(0) = ONE
+    Level_Transmittance_TL(0) = ZERO
+    DO k = 1, nZ
+       Level_transmittance(k) = Level_transmittance(k-1)* &
+       EXP(-TWO * AtmOptics%Optical_Depth(k))
+       Level_transmittance_TL(k) = Level_transmittance_TL(k-1)* &
+       EXP(-TWO * AtmOptics%Optical_Depth(k)) &
+       -TWO*AtmOptics_TL%Optical_Depth(k)*Level_transmittance(k)
+    END DO
+   
+    Reflectivity =  R * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
+    Reflectivity_TL =  R * (AtmOptics_TL%Backscat_Coefficient) ! mm^6 m^-3
+    Reflectivity_Attenuated = Reflectivity * Level_transmittance(0:nZ-1)
+    Reflectivity_Attenuated_TL = Reflectivity_TL * Level_transmittance(0:nZ-1) &
+          + Reflectivity * Level_transmittance_TL(0:nZ-1)
+    ! Convert the unit to dBz
+    WHERE (Reflectivity .GT.  REFLECTIVITY_THRESHOLD)
+        RTSolution%Reflectivity = TEN * LOG10(Reflectivity) ! [dBZ]
+        RTSolution_TL%Reflectivity = TEN * Reflectivity_TL/Reflectivity/log(TEN) ! [dBZ]
+    ELSE WHERE
+        RTSolution%Reflectivity = MISSING_REFL
+        RTSolution_TL%Reflectivity = ZERO
+    END WHERE  
+!
+    WHERE (Reflectivity_Attenuated .GT.  REFLECTIVITY_THRESHOLD)
+        RTSolution%Reflectivity_Attenuated = TEN * LOG10(Reflectivity_Attenuated)
+        RTSolution_TL%Reflectivity_Attenuated = TEN * Reflectivity_Attenuated_TL &
+           /Reflectivity_Attenuated/log(TEN)
+    ELSE WHERE
+        RTSolution%Reflectivity_Attenuated = MISSING_REFL
+        RTSolution_TL%Reflectivity_Attenuated = ZERO
+    END WHERE 
+  END FUNCTION Radar_Solution_TL
+!
+!
+  FUNCTION Radar_Solution_AD( &
+    Atmosphere  , &  ! Input
+    Surface     , &  ! Input
+    AtmOptics   , &  ! Input
+    SfcOptics   , &  ! Input
+    GeometryInfo, &  ! Input
+    SensorIndex , &  ! Input
+    ChannelIndex, &  ! Input
+    deltaZ      , &  ! Input
+    wavenumber  , &  ! Input
+    RTSolution_AD, &  ! Output    
+    Atmosphere_AD   , &  ! Output
+    Surface_AD      , &  ! Output
+    AtmOptics_AD    , &  ! Output
+    SfcOptics_AD    , &  ! Output                    
+    RTSolution, &  ! IN/Output    
+    RTV         ) &  ! Internal variable output
+  RESULT( Error_Status )
+    ! Arguments
+! -----------------------------------------------------------------------
+!  Temperature0 = 273.16 was used in radar reflectivity product.
+!  The complex number Permittivity_TL needs to set to "Zero".
+!  Pressure profile was assumed unchanged, therefore deltaZ_TL = Zero.
+! -----------------------------------------------------------------------
+    TYPE(CRTM_Atmosphere_type),   INTENT(IN)     :: Atmosphere
+    TYPE(CRTM_Atmosphere_type),   INTENT(IN OUT) :: Atmosphere_AD
+    TYPE(CRTM_Surface_type),      INTENT(IN)     :: Surface
+    TYPE(CRTM_Surface_type),      INTENT(IN OUT)     :: Surface_AD
+    TYPE(CRTM_AtmOptics_type),    INTENT(IN)     :: AtmOptics
+    TYPE(CRTM_AtmOptics_type),    INTENT(IN OUT) :: AtmOptics_AD
+    TYPE(CRTM_SfcOptics_type),    INTENT(IN) :: SfcOptics
+    TYPE(CRTM_SfcOptics_type),    INTENT(IN OUT) :: SfcOptics_AD
+    TYPE(CRTM_GeometryInfo_type), INTENT(IN OUT) :: GeometryInfo
+    REAL(fp), INTENT(IN) :: deltaZ(:), wavenumber
+    INTEGER,                      INTENT(IN)     :: SensorIndex
+    INTEGER,                      INTENT(IN)     :: ChannelIndex
+    TYPE(CRTM_RTSolution_type),   INTENT(IN OUT) :: RTSolution, RTSolution_AD
+    TYPE(RTV_type),               INTENT(IN OUT) :: RTV
+    TYPE(pVar_type):: iVar
+
+    ! Function result
+    INTEGER :: Error_Status
+    ! Local parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Radar_Solution_TL'
+    ! Local variables
+    CHARACTER(256) :: Message
+    INTEGER :: i, k, nZ, H2O_idx
+    REAL(fp), PARAMETER :: Temperature0 = 273.16_fp, Salinity0 = 0.0_fp
+    REAL(fp), PARAMETER :: Light_speed = 29.979246_fp
+    REAL(fp) :: Frequency, Wavelength_meter,kw2
+    REAL(fp) :: Level_Transmittance(0:size(deltaZ)),Level_Transmittance_AD(0:size(deltaZ))
+    REAL(fp), DIMENSION(size(deltaZ)) :: dZ, R, Reflectivity, Reflectivity_Attenuated
+    REAL(fp), DIMENSION(size(deltaZ)) :: Reflectivity_AD, Reflectivity_Attenuated_AD
+    COMPLEX(fp) :: Permittivity
+    Error_Status = SUCCESS
+    Level_transmittance_AD = ZERO
+    Reflectivity_AD = ZERO
+    Reflectivity_Attenuated_AD = ZERO
     nZ = Atmosphere%n_Layers
     dZ = deltaZ * 1000.0_fp ! in meters
     dZ = dZ/GeometryInfo%Cosine_Sensor_Zenith
@@ -245,23 +462,43 @@ CONTAINS
        Level_transmittance(k) = Level_transmittance(k-1)* &
        EXP(-TWO * AtmOptics%Optical_Depth(k))
     END DO
-!    
-    Reflectivity =  R * (AtmOptics%Back_Scattering) ! mm^6 m^-3
-    Reflectivity_Attenuated = Reflectivity * Level_transmittance(0:nZ-1)
 
+    Reflectivity =  R * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
+    Reflectivity_Attenuated = Reflectivity * Level_transmittance(0:nZ-1) 
+
+    WHERE (Reflectivity_Attenuated .GT.  REFLECTIVITY_THRESHOLD)
+        RTSolution%Reflectivity_Attenuated = TEN * LOG10(Reflectivity_Attenuated)
+        Reflectivity_Attenuated_AD = TEN*RTSolution_AD%Reflectivity_Attenuated &
+           /Reflectivity_Attenuated/log(TEN)
+    ELSE WHERE
+        RTSolution%Reflectivity_Attenuated = MISSING_REFL
+        RTSolution_AD%Reflectivity_Attenuated = ZERO  
+    END WHERE 
+ 
     ! Convert the unit to dBz
     WHERE (Reflectivity .GT.  REFLECTIVITY_THRESHOLD)
         RTSolution%Reflectivity = TEN * LOG10(Reflectivity) ! [dBZ]
+        Reflectivity_AD = TEN * RTSolution_AD%Reflectivity/Reflectivity/log(TEN) ! [dBZ]
     ELSE WHERE
         RTSolution%Reflectivity = MISSING_REFL
+        RTSolution_AD%Reflectivity = ZERO
     END WHERE  
-!
-    WHERE (Reflectivity_Attenuated .GT.  REFLECTIVITY_THRESHOLD)
-        RTSolution%Reflectivity_Attenuated = TEN * LOG10(Reflectivity_Attenuated)
-    ELSE WHERE
-        RTSolution%Reflectivity_Attenuated = MISSING_REFL
-    END WHERE 
-  END FUNCTION Radar_Solution
+
+    Reflectivity_AD = Reflectivity_AD + Reflectivity_Attenuated_AD*Level_transmittance(0:nZ-1)
+    Level_transmittance_AD(0:nZ-1)= Reflectivity*Reflectivity_Attenuated_AD
+    AtmOptics_AD%Backscat_Coefficient = R*Reflectivity_AD
+
+    AtmOptics_AD%Optical_Depth(:) = ZERO
+    DO k = nZ, 1, -1
+      IF( abs(Level_transmittance_AD(k)) > 1.E-12 ) THEN
+      AtmOptics_AD%Optical_Depth(k)=-TWO*Level_transmittance_AD(k)*Level_transmittance(k)
+      Level_transmittance_AD(k-1) = Level_transmittance_AD(k)*EXP(-TWO * AtmOptics%Optical_Depth(k))
+      END IF
+    END DO
+    Level_Transmittance_AD(0) = ZERO   
+
+  END FUNCTION Radar_Solution_AD
+
 !
 END MODULE ActiveSensor_Model
 !
