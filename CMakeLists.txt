@@ -9,6 +9,7 @@ set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path" )
 message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
 
+
 ## Configuration options
 include(${PROJECT_NAME}_compiler_flags)
 include(GNUInstallDirs)
