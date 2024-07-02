@@ -86,7 +86,7 @@ MODULE CRTM_CloudScatter
                                       LIQUID, &
                                       FROZEN
 
-  USE CRTM_GeometryInfo_Define, ONLY: CRTM_GeometryInfo_type
+!  USE CRTM_GeometryInfo_Define, ONLY: CRTM_GeometryInfo_type
   USE CRTM_Interpolation,       ONLY: NPTS        , &
                                       LPoly_type  , &
                                       find_index  , &
@@ -218,7 +218,7 @@ CONTAINS
 
   FUNCTION CRTM_Compute_CloudScatter( &
     Atm         , &  ! Input
-    GeometryInfo, &  ! Input
+!    GeometryInfo, &  ! Input
     SensorIndex , &  ! Input
     ChannelIndex, &  ! Input
     CScat       , &  ! Output
@@ -226,7 +226,7 @@ CONTAINS
   RESULT( Error_Status )
     ! Arguments
     TYPE(CRTM_Atmosphere_type), INTENT(IN)     :: Atm
-    TYPE(CRTM_GeometryInfo_type), INTENT(IN)   :: GeometryInfo
+!    TYPE(CRTM_GeometryInfo_type), INTENT(IN)   :: GeometryInfo
     INTEGER                   , INTENT(IN)     :: SensorIndex
     INTEGER                   , INTENT(IN)     :: ChannelIndex
     TYPE(CRTM_AtmOptics_type) , INTENT(IN OUT) :: CScat
@@ -290,10 +290,8 @@ CONTAINS
       ! Loop over the current cloud's layers
       ! ------------------------------------
       Layer_Index(1:nCloud_Layers) = PACK((/(k, k=1,Atm%Cloud(n)%n_Layers)/), Layer_Mask)
-
       Cloud_Layer_loop: DO k = 1, nCloud_Layers
         kc = Layer_Index(k)
-
         ! Call sensor specific routines
         IF ( SpcCoeff_IsMicrowaveSensor(SC(SensorIndex)) ) THEN
           CALL Get_Cloud_Opt_MW(CScat                            , & ! Input
@@ -490,7 +488,7 @@ CONTAINS
     Atm         , &  ! FWD Input
     CScat       , &  ! FWD Input
     Atm_TL      , &  ! TL  Input
-    GeometryInfo, &  ! Input
+!    GeometryInfo, &  ! Input
     SensorIndex , &  ! Input
     ChannelIndex, &  ! Input
     CScat_TL    , &  ! TL  Output
@@ -500,7 +498,7 @@ CONTAINS
     TYPE(CRTM_Atmosphere_type), INTENT(IN)     :: Atm
     TYPE(CRTM_AtmOptics_type) , INTENT(IN)     :: CScat
     TYPE(CRTM_Atmosphere_type), INTENT(IN)     :: Atm_TL
-    TYPE(CRTM_GeometryInfo_type), INTENT(IN)   :: GeometryInfo
+!    TYPE(CRTM_GeometryInfo_type), INTENT(IN)   :: GeometryInfo
     INTEGER                   , INTENT(IN)     :: SensorIndex
     INTEGER                   , INTENT(IN)     :: ChannelIndex
     TYPE(CRTM_AtmOptics_type) , INTENT(IN OUT) :: CScat_TL
@@ -735,7 +733,7 @@ CONTAINS
     Atm         , &  ! FWD Input
     CScat       , &  ! FWD Input
     CScat_AD    , &  ! AD  Input
-    GeometryInfo, &  ! Input
+!    GeometryInfo, &  ! Input
     SensorIndex , &  ! Input
     ChannelIndex, &  ! Input
     Atm_AD      , &  ! AD  Output
@@ -745,7 +743,7 @@ CONTAINS
     TYPE(CRTM_Atmosphere_type), INTENT(IN)     :: Atm
     TYPE(CRTM_AtmOptics_type) , INTENT(IN)     :: CScat
     TYPE(CRTM_AtmOptics_type) , INTENT(IN OUT) :: CScat_AD
-    TYPE(CRTM_GeometryInfo_type), INTENT(IN) :: GeometryInfo
+!    TYPE(CRTM_GeometryInfo_type), INTENT(IN) :: GeometryInfo
     INTEGER                   , INTENT(IN)     :: SensorIndex
     INTEGER                   , INTENT(IN)     :: ChannelIndex
     TYPE(CRTM_Atmosphere_type), INTENT(IN OUT) :: Atm_AD
@@ -1351,7 +1349,6 @@ CONTAINS
 
     ! Perform interpolation based on cloud type
     ! -----------------------------------------
-
     SELECT CASE (cloud_state)
       CASE (LIQUID)
         ! Only 2-D interpolation of extinction coefficient as a
