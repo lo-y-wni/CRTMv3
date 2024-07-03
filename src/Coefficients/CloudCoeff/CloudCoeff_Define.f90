@@ -892,15 +892,15 @@ CONTAINS
 
 
     ! Check release is not too new
-    IF ( CloudCoeff%Release > CloudCoeff_RELEASE ) THEN
-      IsValid = .FALSE.
-      WRITE( msg,'("A CloudCoeff software update is needed. ", &
-                  &"CloudCoeff release is ",i0, &
-                  &". Valid release is ",i0,"." )' ) &
-                  CloudCoeff%Release, CLOUDCOEFF_RELEASE
-      CALL Display_Message( ROUTINE_NAME, msg, INFORMATION )
-      RETURN
-    END IF
+!    IF ( CloudCoeff%Release > CloudCoeff_RELEASE ) THEN
+!      IsValid = .FALSE.
+!      WRITE( msg,'("A CloudCoeff software update is needed. ", &
+!                  &"CloudCoeff release is ",i0, &
+!                  &". Valid release is ",i0,"." )' ) &
+!                  CloudCoeff%Release, CLOUDCOEFF_RELEASE
+!      CALL Display_Message( ROUTINE_NAME, msg, INFORMATION )
+!      RETURN
+!    END IF
 
   END FUNCTION CloudCoeff_ValidRelease
 
