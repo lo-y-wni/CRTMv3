@@ -955,7 +955,7 @@ CONTAINS
           ! Compute the cloud particle absorption/scattering properties
           IF( Atm%n_Clouds > 0 ) THEN
             Error_Status = CRTM_Compute_CloudScatter( Atm         , &  ! Input
-                                                      GeometryInfo, &  ! Input
+!                                                      GeometryInfo, &  ! Input
                                                       SensorIndex , &  ! Input
                                                       ChannelIndex, &  ! Input
                                                       AtmOptics   , &  ! Output
@@ -1334,7 +1334,7 @@ CONTAINS
             Error_Status = CRTM_Compute_CloudScatter_AD( Atm         , &  ! FWD Input
                                                          AtmOptics   , &  ! FWD Input
                                                          AtmOptics_AD, &  ! AD  Input
-                                                         GeometryInfo, &  ! Input
+!                                                         GeometryInfo, &  ! Input
                                                          SensorIndex , &  ! Input
                                                          ChannelIndex, &  ! Input
                                                          Atm_AD      , &  ! AD  Output
