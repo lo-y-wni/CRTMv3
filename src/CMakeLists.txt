@@ -111,6 +111,8 @@ list( APPEND crtm_src_files
 			CRTM_Module.F90
 			CRTM_Parameters.f90
 			CRTM_Tangent_Linear_Module.f90
+                        CRTM_ActiveSensor_Module.f90
+                        RTSolution/ActiveSensor_Model.f90
 			CRTM_Utility/CRTM_Utility.f90
 			CRTM_Version.inc
 			GeometryInfo/CRTM_Geometry_Define.f90
