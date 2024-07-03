@@ -32,7 +32,7 @@ PROGRAM CRTM_radar_test_FWTLADK
   TYPE(CRTM_Geometry_type)                :: Geometry(N_PROFILES)
   TYPE( CRTM_RTSolution_type ), ALLOCATABLE, DIMENSION( :,: ) :: RTSolution, RTSolution_TL, &
         RTSolution_AD
-  TYPE( CRTM_RTSolution_type ), ALLOCATABLE, DIMENSION( :,: ) :: RTSolution1,RTSolution2
+  TYPE( CRTM_RTSolution_type ), ALLOCATABLE, DIMENSION( :,: ) :: RTSolution1
   TYPE( CRTM_Options_type )  :: Options(N_PROFILES)
   REAL(fp) :: level_p(0:M_nz),level_t(0:M_nz),le_absorber(0:M_nz,2),total_OD,u,tt
 
@@ -154,12 +154,10 @@ PROGRAM CRTM_radar_test_FWTLADK
    ! -- SUM OF CHANNELS FROM ALL SENSORS AND ALLOCATE OUTPUT RTSolution --
    ALLOCATE( RTSolution( n_Channels,N_PROFILES ), STAT = Allocate_Status )  
    ALLOCATE( RTSolution1( n_Channels,N_PROFILES ), STAT = Allocate_Status )  
-   ALLOCATE( RTSolution2( n_Channels,N_PROFILES ), STAT = Allocate_Status )  
    ! open an array for holding optical depth
    CALL CRTM_RTSolution_Create( RTSolution, Atmosphere(1)%n_Layers )
    CALL CRTM_RTSolution_Create( RTSolution1, Atmosphere(1)%n_Layers )
-   CALL CRTM_RTSolution_Create( RTSolution2, Atmosphere(1)%n_Layers )
-      
+    
   ALLOCATE( RTSolution_TL( n_Channels,N_PROFILES ), STAT = Allocate_Status ) 
   CALL CRTM_RTSolution_Create( RTSolution_TL, Atmosphere(1)%n_Layers )
   ALLOCATE( RTSolution_AD( n_Channels,N_PROFILES ), STAT = Allocate_Status ) 
@@ -261,17 +259,19 @@ PROGRAM CRTM_radar_test_FWTLADK
 
          CALL CRTM_RTSolution_Zero( RTSolution )
          CALL CRTM_RTSolution_Zero( RTSolution1 )
+  print *,' call Forward model '
    Error_Status = CRTM_ActiveSensor( Atmosphere , &  
                                Surface    , & 
                                Geometry   , &  
                                ChannelInfo, &  
                                RTSolution,  &
                                Options = Options )  
+  print *,' after Forward model ',Error_Status
    RTSolution1(1,1)%Reflectivity_Attenuated = RTSolution(1,1)%Reflectivity_Attenuated
    RTSolution1(1,1)%Reflectivity = RTSolution(1,1)%Reflectivity
     
    print *,' Forward simulation Reflectivity_Attenuated -9999.0 (default)'
-   write(6,'(6ES14.5)') RTSolution1(1,1)%Reflectivity_Attenuated
+   write(6,'(6ES14.5)') RTSolution1(1,1)%Reflectivity_Attenuated(65)
 !  Puturbation
    deltaX = 0.00001_fp
    Atmosphere(1)%Cloud(1)%Water_Content(65) = Atmosphere(1)%Cloud(1)%Water_Content(65) + deltaX
@@ -306,7 +306,8 @@ PROGRAM CRTM_radar_test_FWTLADK
    print *,' tangent-linear vs finite difference TL, dy, (TL-dy)/TL'
    print *, 'dy ',dy, RTSolution_TL(1,1)%Reflectivity_Attenuated(65), &
              (RTSolution_TL(1,1)%Reflectivity_Attenuated(65)-dy)/RTSolution_TL(1,1)%Reflectivity_Attenuated(65)
-
+   print *,' Forward simulation by calling CRTM_ActiveSensor_TL'
+   write(6,'(6ES14.5)') RTSolution1(1,1)%Reflectivity_Attenuated(65)
 !  write(6,'(6E14.5)') RTSolution_TL(1,1)%Reflectivity_Attenuated
         
    print *,' Adjoint ' 
@@ -333,7 +334,8 @@ PROGRAM CRTM_radar_test_FWTLADK
         tAD = (Atmosphere_AD(1)%Cloud(1)%Water_Content(65) * Atmosphere_TL(1)%Cloud(1)%Water_Content(65))
         tTL = (RTSolution_TL(1,1)%Reflectivity_Attenuated(65)*RTSolution_AD(1,1)%Reflectivity_Attenuated(65))        
         print *,' TL, AD  (TL-AD)/TL*100.0 (5)',tTL, tAD, (tTL-tAD)/tAD * 100.0_fp
-
+   print *,' Forward simulation by calling CRTM_ActiveSensor_AD'
+   write(6,'(6ES14.5)') RTSolution1(1,1)%Reflectivity_Attenuated(65)
         print *,' K-matrix ' 
    CALL CRTM_RTSolution_Zero( RTSolution )
    CALL CRTM_RTSolution_Zero( RTSolution_K )
@@ -354,7 +356,8 @@ PROGRAM CRTM_radar_test_FWTLADK
    dy = RTSolution_TL(1,1)%Reflectivity_Attenuated(65)
     print *,' TL vs K  dy, K, (dy-K)/dy*100.0 ',dy, Atmosphere_K(1,1)%Cloud(1)%Water_Content(65), &
     (dy-Atmosphere_K(1,1)%Cloud(1)%Water_Content(65))/dy*100.0
-
+   print *,' Forward simulation by calling CRTM_ActiveSensor_K'
+   write(6,'(6ES14.5)') RTSolution1(1,1)%Reflectivity_Attenuated(65)
    Error_Status = CRTM_Destroy( ChannelInfo )
 END PROGRAM CRTM_radar_test_FWTLADK
 !   
