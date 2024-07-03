@@ -4,7 +4,15 @@
     finite difference (derivative) against tanent-linear,
     tangent linear against adjoint,
     tangent-linear againt K-matrix
+  make intel
+  CRTM_radar_test_FWTLADK
 
 2. CRTM_Forward_CloudSAT.f90, example code to simulate cloudsat radar attenuated reflectivity
+ revise  makefile
+ (change to
+         #EXE_FILE = CRTM_radar_test_FWTLADK
+         EXE_FILE = CRTM_Forward_CloudSAT )
+  make intel
+  CRTM_Forward_CloudSAT
 
 3. a python to plot images (profiles, heights)
