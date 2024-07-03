@@ -1076,7 +1076,7 @@ CONTAINS
           ! Compute the cloud particle absorption/scattering properties
           IF( Atm%n_Clouds > 0 ) THEN
             Status_FWD = CRTM_Compute_CloudScatter( Atm         , &  ! Input
-                                                      GeometryInfo    , &  ! Input
+!                                                      GeometryInfo    , &  ! Input
                                                       SensorIndex , &  ! Input
                                                       ChannelIndex, &  ! Input
                                                       AtmOptics(nt)   , &  ! Output
@@ -1084,7 +1084,7 @@ CONTAINS
             Status_TL = CRTM_Compute_CloudScatter_TL( Atm         , &  ! FWD Input
                                                       AtmOptics(nt)   , &  ! FWD Input
                                                       Atm_TL      , &  ! TL  Input
-                                                      GeometryInfo, &  ! Input
+!                                                      GeometryInfo, &  ! Input
                                                       SensorIndex , &  ! Input
                                                       ChannelIndex, &  ! Input
                                                       AtmOptics_TL(nt), &  ! TL  Output
