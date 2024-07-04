@@ -33,8 +33,8 @@ def read_ClousSat_Z( inputFile):
         csat['ht'] = csat['ht']/1000 #m to km
 
         csat['Z']  = np.where( csat['Z']>100, np.nan, csat['Z'])
-        csat['Z']  = np.where( csat['Z']<-40, np.nan, csat['Z'])
-
+        #csat['Z']  = np.where( csat['Z']<-40, np.nan, csat['Z'])
+        csat['Z']  = np.where( csat['Z']<-20, np.nan, csat['Z'])
     return csat
 
 
@@ -66,7 +66,8 @@ def read_CRTM_Z( crtmOutFile ):
 
 def plot_Z():
 
-    vmin, vmax = -40, 25 #image color range.
+    vmin, vmax = -20, 30 #image color range.
+    #vmin, vmax = -40, 25 #image color range.
     fig,(ax1,ax2) = pp.subplots(2, figsize=(8,6))
 
     # Plot CRTM result
@@ -74,20 +75,21 @@ def plot_Z():
     #crtmOutFile = './cpr_cloudsat.CLOUDSAT.OCEAN.FORWARD.result.dat'
     crtmOutFile = './cpr_ref.bin'
     crtm = read_CRTM_Z( crtmOutFile)
-    z1 = crtm['Z']
+    z1 = crtm['Z_attn']
     x1 = range(1, z1.shape[1]+1) #profile numbers 
     #y1 = crtm['press']
     y1 = crtm['ht']
     print(' height ',np.max(y1),np.min(y1))
     p1 = ax1.pcolormesh(x1,y1,z1, vmin=vmin,vmax=vmax)
     #ax1.invert_yaxis()
+    ax1.set_ylim([0,20])
     ax1.grid()
     ax1.set_xlabel('Profile No.')
     ax1.set_ylabel('Pressure (hpa)')
     ax1.set_ylabel('Height (km)')
     ax1.set_title('CRTM simulation')
     cb = fig.colorbar( p1)
-    cb.ax.set_ylabel('Reflectivity (dBZ)')
+    cb.ax.set_ylabel('Attenuated Reflectivity (dBZ)')
 
     print(' CloudSAT observation ')
     # Plot CloudSat observation
@@ -105,7 +107,7 @@ def plot_Z():
     ax2.set_ylabel('Hight (km)')
     ax2.set_title('CloudSat CPR observation')
     cb = fig.colorbar( p2)
-    cb.ax.set_ylabel('Reflectivity (dBZ)')
+    cb.ax.set_ylabel('Attenuated Reflectivity (dBZ)')
 
     fig.tight_layout()
     pp.savefig( 'Z.png',dpi=200)
