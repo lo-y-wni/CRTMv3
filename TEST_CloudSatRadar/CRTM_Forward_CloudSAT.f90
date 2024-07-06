@@ -206,7 +206,7 @@ PROGRAM CRTM_Forward_CloudSAT
       write(6,'(I5,3f12.4,4E15.6)') k, Atm(1)%Pressure(k), &
                        RTSolution(1, 1)%Reflectivity(k), &                  
                        RTSolution(1, 1)%Reflectivity_Attenuated(k), &
-             Atm(1)%Cloud(:)%Water_Content(k)
+             Atm(1)%Cloud(1)%Water_Content(k)
     END DO 
     
       write(fid) n_Channels, n_Profiles
