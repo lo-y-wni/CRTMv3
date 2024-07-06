@@ -22,26 +22,23 @@ MAKE_FILE = makefile
 # ---------------
 
 #EXE_FILE = run_crtm_Z
-EXE_FILE = CRTM_radar_test_FWTLADK
-#EXE_FILE = CRTM_Forward_CloudSAT
+#EXE_FILE = CRTM_radar_test_FWTLADK
+EXE_FILE = CRTM_Forward_CloudSAT
 
 OBJ_FILES = read_cloudsat_data.o $(EXE_FILE).o
 # ------------
 # Object files
 #  v3.0
-##INCLUDES = -I/data/smcd8/qliu/Tropics/CRTM_Sim/REL-3.0.1/libsrc -I/data/starfs1/libs/netcdf-4.2-ifort/include 
-##LIBRARIES = -qopenmp -L/data/smcd8/qliu/Tropics/CRTM_Sim/REL-3.0.1/libsrc -lcrtm -L/data/starfs1/libs/netcdf-4.2-ifort/lib -lnetcdff
+#INCLUDES = -I../build/module/crtm/Intel/19.0.5.20190815 -I/data/starfs1/libs/netcdf-4.2-ifort/include 
+#LIBRARIES = -qopenmp -L../build/src -lcrtm -L/data/starfs1/libs/netcdf-4.2-ifort/lib -lnetcdff
 
-#INCLUDES = -I../src/Build/libsrc -I/data/starfs1/libs/netcdf-4.2-ifort/include 
-#LIBRARIES = -qopenmp -L../src/Build/libsrc -lcrtm -L/data/starfs1/libs/netcdf-4.2-ifort/lib -lnetcdff
+# ifort on hera
+#INCLUDES = -I../build/module/crtm/Intel/2021.5.0.20211109 -I/apps/netcdf/4.7.0/intel/18.0.5.274/include
+#LIBRARIES = -qopenmp -L../build/src -lcrtm -L/apps/netcdf/4.7.0/intel/18.0.5.274/lib -lnetcdff
 
-INCLUDES = -I../build/module/crtm/Intel/19.0.5.20190815 -I/data/starfs1/libs/netcdf-4.2-ifort/include 
-LIBRARIES = -qopenmp -L../build/src -lcrtm -L/data/starfs1/libs/netcdf-4.2-ifort/lib -lnetcdff
-
-#INCLUDES = -I../../../CRTM_09202023/libsrc -I/data/starfs1/libs/netcdf-4.2-ifort/include 
-#LIBRARIES = -qopenmp -L../../../CRTM_09202023/libsrc -lcrtm -L/data/starfs1/libs/netcdf-4.2-ifort/lib -lnetcdff
-
-
+# gfortran on hera
+INCLUDES = -I../build/module/crtm/GNU/9.2.0 -I/apps/netcdf/4.9.2/gnu-9.2.0/include
+LIBRARIES = -fopenmp -L../build/src -lcrtm -L/apps/netcdf/4.9.2/gnu-9.2.0/lib -lnetcdff
 
 all:
 	@echo "OS type detected: "`uname -s`
