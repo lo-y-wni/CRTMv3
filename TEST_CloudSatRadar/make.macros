@@ -309,7 +309,6 @@ LINUX_FLAGS_GFORTRAN_PROD = "FC=${NAME_GFORTRAN}" \
                                        -ggdb \
 	                               -static \
                                        -Wall \
-                                       -std=f2003 \
                                        ${INCLUDES} \
                                        ${LINUX_COMMON_FLAGS_GFORTRAN_PROD}" \
 	                    "FL_FLAGS= ${LINUX_COMMON_FLAGS_GFORTRAN_PROD} \
