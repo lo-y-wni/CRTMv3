@@ -49,9 +49,10 @@ find_package(NetCDF REQUIRED Fortran)
 
 
 # Compile the project
-set( exeFile  run_crtm_Z.exe )
-add_executable( ${exeFile}
-                run_crtm_Z.f90  )
+#set( exeFile  run_crtm_Z.exe )
+#add_executable( ${exeFile}  run_crtm_Z.f90  )
+set( exeFile  test_radar.exe )
+add_executable( ${exeFile}  CRTM_radar_test_FWTLADK.f90  )
 target_link_libraries(${exeFile} PRIVATE OpenMP::OpenMP_Fortran)
 target_link_libraries(${exeFile} PRIVATE NetCDF::NetCDF_Fortran)
 #target_link_libraries(${exeFile} PRIVATE crtm )
