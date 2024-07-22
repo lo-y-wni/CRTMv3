@@ -9,6 +9,27 @@ set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path" )
 message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
 
+# Function to get the current git commit hash
+function(get_git_hash result)
+    execute_process(
+        COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(${result} ${GIT_HASH} PARENT_SCOPE)
+endfunction()
+
+# Get the git hash
+get_git_hash(PROJECT_HASH)
+
+# Define ANSI color code for green
+string(ASCII 27 ESCAPE)
+set(RESET "${ESCAPE}[0m")
+set(GREEN "${ESCAPE}[32m")
+
+# Output the project name, version, and hash in green text
+message(STATUS "${GREEN}[${PROJECT_NAME}] (${PROJECT_VERSION}) [${PROJECT_HASH}]${RESET}")
 
 ## Configuration options
 include(${PROJECT_NAME}_compiler_flags)
