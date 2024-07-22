@@ -3,7 +3,7 @@
 # This script is used to manually download the tarball of binary and netcdf coefficient files.
 # The same files also download automatically during the cmake step, so you don't have to actually run this manually. 
 
-foldername="fix_REL-3.1.0.1_01252024"
+foldername="fix_REL-3.1.1.0"
 filename="${foldername}.tgz"
 echo "$filename"
 break
