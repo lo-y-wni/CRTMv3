@@ -58,8 +58,8 @@ endif()
 
 # If local path to testfiles is defined don't download 
 IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
-  set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR}/fix )
-  message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}")
+  set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR} )
+  message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}/fix")
   message("Using existing local fix directory instead of downloading.")
   set( CRTM_COEFFS_BRANCH "" )
 
