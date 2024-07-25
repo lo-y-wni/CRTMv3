@@ -26,8 +26,8 @@ else
     #untar the file and move directory to fix
     tar -zxvf $filename
     mkdir fix
-    mv crtm/$foldername/* fix/.
-    rm -rf crtm/$foldername
+    mv $foldername/fix/* fix/.
+    rm -rf $foldername
   	echo "fix/ directory created from downloaded $filename."
 fi
 echo "Completed."
