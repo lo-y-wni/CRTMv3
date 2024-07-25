@@ -58,8 +58,8 @@ endif()
 
 # If local path to testfiles is defined don't download 
 IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
-  set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR}/fix )
-  message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}")
+  set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR} )
+  message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}/fix")
   message("Using existing local fix directory instead of downloading.")
   set( CRTM_COEFFS_BRANCH "" )
 
@@ -438,7 +438,6 @@ AerosolCoeff/Little_Endian/AerosolCoeff.bin
 AerosolCoeff/netCDF/AerosolCoeff.nc4
 CloudCoeff/Little_Endian/CloudCoeff.bin
 CloudCoeff/netCDF/CloudCoeff.nc4
-CloudCoeff/netCDF/CloudCoeff_DDA_ARTS.nc4
 CloudCoeff/netCDF/CloudCoeff_DDA_Moradi_2022.nc4
 EmisCoeff/MW_Water/Little_Endian/FASTEM6.MWwater.EmisCoeff.bin
 EmisCoeff/IR_Ice/SEcategory/Little_Endian/NPOESS.IRice.EmisCoeff.bin
