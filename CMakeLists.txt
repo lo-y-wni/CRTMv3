@@ -10,7 +10,8 @@ set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
 ## Configuration options
 include(${PROJECT_NAME}_compiler_flags)
 include(GNUInstallDirs)
-
+## Output of compile commands during generation in a Jason file compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 ## Dependencies
 if(OPENMP)
   find_package(OpenMP COMPONENTS Fortran)
