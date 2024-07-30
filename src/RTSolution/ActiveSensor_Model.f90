@@ -213,7 +213,7 @@ CONTAINS
     ! Local parameters
     CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Radar_Solution'
     ! Local variables
-    CHARACTER(256) :: Message
+
     INTEGER :: i, k, nZ, H2O_idx
     REAL(fp), PARAMETER :: Temperature0 = 273.16_fp, Salinity0 = 0.0_fp
     REAL(fp) :: Temperature0_TL, Salinity0_TL
@@ -315,7 +315,7 @@ CONTAINS
     ! Local parameters
     CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Radar_Solution_TL'
     ! Local variables
-    CHARACTER(256) :: Message
+
     INTEGER :: i, k, nZ, H2O_idx
     REAL(fp), PARAMETER :: Temperature0 = 273.16_fp, Salinity0 = 0.0_fp
     REAL(fp), PARAMETER :: Light_speed = 29.979246_fp
@@ -425,7 +425,7 @@ CONTAINS
     ! Local parameters
     CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Radar_Solution_TL'
     ! Local variables
-    CHARACTER(256) :: Message
+
     INTEGER :: i, k, nZ, H2O_idx
     REAL(fp), PARAMETER :: Temperature0 = 273.16_fp, Salinity0 = 0.0_fp
     REAL(fp), PARAMETER :: Light_speed = 29.979246_fp
