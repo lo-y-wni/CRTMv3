@@ -54,7 +54,9 @@ MODULE RTV_Define
   PUBLIC :: MAX_N_SOI_ITERATIONS
   ! Datatypes
   PUBLIC :: aircraft_rt_type
+  PUBLIC :: obs_4_downward_type
   PUBLIC :: RTV_type
+  
   ! Procedures
   PUBLIC :: RTV_Associated
   PUBLIC :: RTV_Destroy
@@ -97,6 +99,12 @@ MODULE RTV_Define
     INTEGER :: idx
   END TYPE aircraft_rt_type  
 
+  TYPE :: obs_4_downward_type
+    ! The switch
+    LOGICAL :: rt = .FALSE.
+    ! The output level index
+    INTEGER :: idx
+  END TYPE obs_4_downward_type 
   ! --------------------------------------
   ! Structure definition to hold forward
   ! variables across FWD, TL, and AD calls
@@ -162,7 +170,7 @@ MODULE RTV_Define
     
     ! Aircraft model RT information
     TYPE(aircraft_rt_type) :: aircraft
-
+    TYPE(obs_4_downward_type) :: obs_4_downward
     ! Scattering, visible model variables    
     INTEGER :: n_Streams         = 0       ! Number of *hemispheric* stream angles used in RT    
     INTEGER :: mth_Azi                     ! mth fourier component
@@ -211,7 +219,16 @@ MODULE RTV_Define
      
     REAL(fp), ALLOCATABLE :: s_Layer_Source_UP(:,:)   ! MAX_N_ANGLES, MAX_N_LAYERS
     REAL(fp), ALLOCATABLE :: s_Layer_Source_DOWN(:,:) ! MAX_N_ANGLES, MAX_N_LAYERS
-
+!  for aircraft and downward
+    REAL(fp), ALLOCATABLE :: Inv_Gamma2(:,:,:)         ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: Inv_Gamma2T(:,:,:)        ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: Inv_Gamma3(:,:,:)         ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: s_Level_Rad_UPT(:,:)      ! MAX_N_ANGLES, 0:MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: s_Level_Refl_DOWN(:,:,:)   ! MAX_N_ANGLES, MAX_N_ANGLES, 0:MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: s_Level_Refl_DOWNT(:,:,:)   ! MAX_N_ANGLES, MAX_N_ANGLES, 0:MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: s_Level_Rad_DOWN(:,:)      ! MAX_N_ANGLES, 0:MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: s_Level_Rad_DOWNT(:,:)      ! MAX_N_ANGLES, 0:MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: Refl_Trans_DOWN(:,:,:)        ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
 
     !------------------------------------
     ! Variables used in the AMOM routines
@@ -450,8 +467,10 @@ CONTAINS
               RTV%n_Factor (n_Angles, n_Layers)       , &
               RTV%sum_fac(0:n_Angles, n_Layers)       , &
               STAT = alloc_stat )
-    IF ( alloc_stat /= 0 ) RETURN
-
+    IF ( alloc_stat /= 0 ) THEN
+       print *,' error in allocate Pff ',alloc_stat
+       RETURN
+    END IF
     ! zero items after allocation to prevent underflow / overflow issues
     RTV%Pff      = ZERO
     RTV%Pbb      = ZERO
@@ -475,7 +494,25 @@ CONTAINS
               RTV%s_Layer_Source_UP(  nZ, n_Layers)        , &
               RTV%s_Layer_Source_DOWN(nZ, n_Layers)        , &
               STAT = alloc_stat )
-    IF ( alloc_stat /= 0 ) RETURN
+    IF ( alloc_stat /= 0 ) THEN
+       print *,' error in allocate Inv_Gamma ',alloc_stat
+      RETURN
+    END IF
+    ! for aircraft and downward part
+    ALLOCATE( RTV%s_Level_Rad_UPT(nZ, 0:n_Layers)           , &              
+              RTV%s_Level_Rad_DOWN(nZ, 0:n_Layers)           , &     
+              RTV%s_Level_Refl_DOWN(nZ, nZ, 0:n_Layers), &    
+              RTV%s_Level_Refl_DOWNT(nZ, nZ, 0:n_Layers), &   
+              RTV%s_Level_Rad_DOWNT(nZ, 0:n_Layers)          , &                                
+              RTV%Inv_Gamma2( nZ, nZ, n_Layers)       , &
+              RTV%Inv_Gamma2T(nZ, nZ, n_Layers)       , &
+              RTV%Inv_Gamma3( nZ, nZ, n_Layers)       , &              
+              RTV%Refl_Trans_DOWN(nZ, nZ, n_Layers)   , & 
+              STAT = alloc_stat )
+    IF ( alloc_stat /= 0 ) THEN
+       print *,' error in allocate s_Level_Rad_UPT ',alloc_stat
+      RETURN
+    END IF
 
     ! zero items after allocation
     RTV%Inv_Gamma           = ZERO
@@ -516,7 +553,10 @@ CONTAINS
               RTV%Gm_A5(nZ, nZ, n_Layers)  , &
               RTV%i_Gm_A5(nZ, nZ, n_Layers), & 
               STAT = alloc_stat )
-    IF ( alloc_stat /= 0 ) RETURN
+    IF ( alloc_stat /= 0 ) THEN
+       print *,' error in allocate Thermal_C ',alloc_stat
+      RETURN
+    END IF
     
     ! zero items after allocation
     RTV%Thermal_C = ZERO
@@ -576,7 +616,11 @@ CONTAINS
     RTV%Source_down = ZERO
 
 
-    IF ( alloc_stat /= 0 ) RETURN
+    IF ( alloc_stat /= 0 ) THEN
+       print *,' error in allocate e_Layer_Trans ',alloc_stat
+      RETURN
+    END IF
+    
     IF(RTV%RT_Algorithm_Id == RT_VMOM) THEN
       ALLOCATE( RTV%ADS1(nZ, nZ, MAX_N_AMOM, n_Layers), &
               RTV%ADS2(nZ, nZ, MAX_N_AMOM, n_Layers), &
@@ -598,7 +642,10 @@ CONTAINS
       RTV%ApBS3 = ZERO
 
  
-      IF ( alloc_stat /= 0 ) RETURN
+    IF ( alloc_stat /= 0 ) THEN
+       print *,' error in allocate ADS1 ',alloc_stat
+      RETURN
+    END IF
     END IF
     ! Set dimensions
     RTV%n_Layers         = n_Layers
