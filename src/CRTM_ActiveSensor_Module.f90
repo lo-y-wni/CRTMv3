@@ -241,7 +241,7 @@ CONTAINS
     INTEGER :: m, n_Profiles
     INTEGER :: ln, H2O_idx
     REAL(fp), Allocatable :: Height(:), deltaZ(:)
-    REAL(fp) :: transmittance1, transmittance2
+
     ! Component variables
     TYPE(CRTM_AtmOptics_type) :: AtmOptics
     TYPE(CRTM_PVar_type)  :: PVar   ! Predictor
@@ -558,7 +558,7 @@ CONTAINS
     INTEGER :: m, n_Profiles
     INTEGER :: ln, H2O_idx
     REAL(fp), Allocatable :: Height(:), deltaZ(:)
-    REAL(fp) :: transmittance1, transmittance2
+
     ! Component variables
     TYPE(CRTM_AtmOptics_type) :: AtmOptics, AtmOptics_TL
     TYPE(CRTM_PVar_type)  :: PVar   ! Predictor
@@ -951,7 +951,7 @@ CONTAINS
     INTEGER :: m, n_Profiles
     INTEGER :: ln, H2O_idx
     REAL(fp), Allocatable :: Height(:), deltaZ(:)
-    REAL(fp) :: transmittance1, transmittance2
+
     ! Component variables
     TYPE(CRTM_AtmOptics_type) :: AtmOptics, AtmOptics_AD
     TYPE(CRTM_PVar_type)  :: PVar   ! Predictor
@@ -1400,7 +1400,7 @@ CONTAINS
     INTEGER :: ln, H2O_idx
     INTEGER :: RT_Algorithm_Id
     REAL(fp), Allocatable :: Height(:), deltaZ(:)
-    REAL(fp) :: transmittance1, transmittance2
+
     ! Component variables
     TYPE(CRTM_Options_type) :: Default_Options
     TYPE(CRTM_PVar_type)  :: PVar   ! Predictor
