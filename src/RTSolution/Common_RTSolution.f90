@@ -1181,6 +1181,10 @@ CONTAINS
         Radiance(:) = RTV%s_Level_Rad_UP(n1:n1-1+RTV%n_Stokes, 0)
       END IF
 
+      IF ( RTV%obs_4_downward%rt ) THEN
+        Radiance = RTV%s_Level_Rad_DOWN(n1:n1-1+RTV%n_Stokes, RTV%obs_4_downward%idx)
+      END IF  
+
     ! Emission specific assignments
     ELSE
 
@@ -1190,6 +1194,10 @@ CONTAINS
       ELSE
         Radiance(1) = RTV%e_Level_Rad_UP(0)
       END IF
+
+      IF ( RTV%obs_4_downward%rt ) THEN
+        Radiance = RTV%e_Level_Rad_DOWN(RTV%obs_4_downward%idx)
+      END IF 
 
       ! Other emission-only output
       RTSolution%Up_Radiance             = RTV%Up_Radiance
