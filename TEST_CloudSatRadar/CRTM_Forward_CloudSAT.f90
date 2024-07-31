@@ -45,7 +45,8 @@ PROGRAM CRTM_Forward_CloudSAT
 !!                             CloudCoeff_File     = './testinput/CloudCoeff.nc4', &
                              SpcCoeff_Format     = 'netCDF', &
                              TauCoeff_Format     = 'netCDF', &
-         File_Path='./testinput/') 
+         File_Path='../../../CRTM_final/CRTM_coeff/') 
+!!         File_Path='./testinput/') 
 
 
    SC(1)%Is_Active_Sensor  = .TRUE.
