@@ -1,0 +1,66 @@
+  Please input sensor id, for example: atms_j2 , cris_j2 
+  u.omps-npAllFOV_j2 , u.omps-tcAllFOV_j2 , 
+  viirs-i_j2 , viirs-m_j2 , v.viirs-i_j2 , v.viirs-m_j2 
+  select atms_j2 
+ SpcCoeff_ReadFile(Binary)(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/atms_j2.SpcCoeff.bin; 
+ SpcCoeff RELEASE.VERSION:  8.00
+   N_CHANNELS=22
+ CloudCoeff_ReadFile(Binary)(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/CloudCoeff.bin; 
+ CloudCoeff RELEASE.VERSION:   3.004  N_FREQUENCIES(MW)=  31  N_FREQUENCIES(IR)=  61  N_RADII(MW)=10  N_RADII(IR)=10  N_TEMPERATURES= 5  N_MW_DENSITIES= 3  N_IR_DENSITIES= 4  N_LEGENDRE_TERMS=38  N_PHASE_ELEMENTS= 1
+ AerosolCoeff_ReadFile(netCDF)(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/AerosolCoeff.nc4; 
+ AerosolCoeff RELEASE.VERSION:   4.005  N_WAVELENGTHS=  61  N_RADII= 36  N_SIGMA=  1  N_TYPES= 8  N_RH=  1  N_RH_Radii= 36  N_LEGENDRE_TERMS=37  N_PHASE_ELEMENTS= 1
+ FitCoeff_ReadFile(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/FASTEM6.MWwater.EmisCoeff.bin; 
+ FitCoeff RELEASE.VERSION : 1.6; DIMENSIONS= 2
+ FitCoeff_ReadFile(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/FASTEM6.MWwater.EmisCoeff.bin; 
+ FitCoeff RELEASE.VERSION : 1.6; DIMENSIONS= 6
+ FitCoeff_ReadFile(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/FASTEM6.MWwater.EmisCoeff.bin; 
+ FitCoeff RELEASE.VERSION : 1.6; DIMENSIONS= 3, 7, 2
+ FitCoeff_ReadFile(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/FASTEM6.MWwater.EmisCoeff.bin; 
+ FitCoeff RELEASE.VERSION : 1.6; DIMENSIONS= 6, 6, 2
+ FitCoeff_ReadFile(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/FASTEM6.MWwater.EmisCoeff.bin; 
+ FitCoeff RELEASE.VERSION : 1.6; DIMENSIONS= 8
+ FitCoeff_ReadFile(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/FASTEM6.MWwater.EmisCoeff.bin; 
+ FitCoeff RELEASE.VERSION : 1.6; DIMENSIONS= 3, 6, 2
+ MWwaterCoeff_ReadFile(INFORMATION) : FILE: ../../../CRTM_final/CRTM_coeff/FASTEM6.MWwater.EmisCoeff.bin; 
+ MWwaterCoeff RELEASE.VERSION: 1.6
+  number of channels =           22  for 
+ atms_j2                                                                        
+                                                                                
+                                                                                
+                    
+  input a number 1 to 6 for following standard profile 
+  1 :  TROPICAL 
+  2 :  MIDLATITUDE_SUMMER 
+  3 :  MIDLATITUDE_WINTER 
+  4 :  SUBARCTIC_SUMMER 
+  5 :  SUBARCTIC_WINTER 
+  6 :  US_STANDARD_ATMOSPHERE 
+  using TROPICAL Atmosphere 
+  Aircraft    596.306182000000        272.826000000000     
+  Cloud    802.371376000000        827.371259000000        288.354000000000     
+  column ozone =    280.916760169568     
+  n_Clouds            1   50.0000000000000     
+  atm    596.306182000000        585.915507000000        272.826000000000     
+   channel     Frequency    Radiance    Brightness Temperature 
+    1          23.80000   1.29559E-03   248.89401
+    2          31.40000   2.16357E-03   238.99458
+    3          50.30000   6.28353E-03   270.83907
+    4          51.76000   6.81004E-03   277.21267
+    5          52.80000   7.21977E-03   282.42972
+    6          53.59600   7.47659E-03   283.86533
+    7          54.40000   7.65585E-03   282.17048
+    8          54.94000   7.76059E-03   280.45671
+    9          55.50000   7.87453E-03   278.88169
+   10          57.29034   8.64640E-03   287.38044
+   11          57.29034   8.61609E-03   286.37461
+   12          57.29034   8.56327E-03   284.62263
+   13          57.29034   8.49715E-03   282.43568
+   14          57.29034   8.41648E-03   279.76716
+   15          57.29034   8.33423E-03   277.04670
+   16          88.20000   1.90279E-02   267.65838
+   17         165.50000   7.03310E-02   282.72075
+   18         183.31000   8.59638E-02   281.72935
+   19         183.31000   8.52305E-02   279.59114
+   20         183.31000   8.46503E-02   277.80767
+   21         183.31000   8.42490E-02   276.55626
+   22         183.31000   8.39951E-02   275.75408
