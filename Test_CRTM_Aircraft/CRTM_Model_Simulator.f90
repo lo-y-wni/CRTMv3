@@ -55,16 +55,11 @@ PROGRAM CRTM_Model_J2_Simulator
                              Aerosol_Model       = 'CRTM', &
                              AerosolCoeff_Format = 'netCDF', &
                              AerosolCoeff_File   = &
-       'AerosolCoeff.nc4', &
-!!                             AerosolCoeff_File   = './testinput/Aerosol_V3.bin', &
-!!!                             Cloud_Model         = 'CRTM', & 
-!!!                             CloudCoeff_Format   = "netCDF", &
-!!                             CloudCoeff_File     = './testinput/CloudCoeff.nc', &
-!!!                             CloudCoeff_File     = '../../../CRTM_coeff/Cloud_V3.nc', &
-!!                             CloudCoeff_File     = './testinput/CloudCoeff.nc4', &
-!!                             SpcCoeff_Format     = 'netCDF', &
-!!                             TauCoeff_Format     = 'netCDF', &
-         File_Path='../../../CRTM_final/CRTM_coeff/') 
+       '../CRTM_Coeff_BigEndian/AerosolCoeff_liu.nc', &
+       Cloud_Model         = 'CRTM', & 
+       CloudCoeff_Format   = "netCDF", &
+       CloudCoeff_File     = '../CRTM_Coeff_BigEndian/CloudCoeff_liu.nc', &
+       File_Path='../CRTM_Coeff_BigEndian/') 
 
   n_Channels = sum(CRTM_ChannelInfo_n_Channels(ChannelInfo(:))  ) 
   CALL CRTM_Options_Create( Options, n_Channels )
@@ -214,10 +209,10 @@ PROGRAM CRTM_Model_J2_Simulator
     Options(1)%Direct_Reflectivity(:) = (ONE-Options(1)%Emissivity(:)) !* PI  
 
 !  note: either aircraft or download (not both !! If none choose, then TOA radiance
-    Options(1)%Aircraft_Pressure = Atmosphere(1)%level_pressure(80)
-   print *,' Aircraft ',Atmosphere(1)%level_pressure(80),Atmosphere(1)%temperature(80)
-!!    Options(1)%obs_4_downward_P = Atmosphere(1)%level_pressure(n_Layers)
-!! print *,' downward at P ',Atmosphere(1)%level_pressure(n_Layers),Atmosphere(1)%temperature(n_Layers)    
+!    Options(1)%Aircraft_Pressure = Atmosphere(1)%level_pressure(80)
+!!   print *,' Aircraft ',Atmosphere(1)%level_pressure(80),Atmosphere(1)%temperature(80)
+!!!    Options(1)%obs_4_downward_P = Atmosphere(1)%level_pressure(n_Layers)
+ print *,' downward at P ',Atmosphere(1)%level_pressure(n_Layers),Atmosphere(1)%temperature(n_Layers)    
      IF( Atmosphere(1)%n_Clouds > 0 ) THEN
        Atmosphere(1)%Cloud_Fraction(:) = ONE
        Atmosphere(1)%Cloud(1)%Type = RAIN_CLOUD
