@@ -52,6 +52,10 @@ PROGRAM CRTM_radar_test_FWTLADK
 !
 !
    Sensor_ID(1)='cpr_cloudsat'
+   
+   k = 0
+   
+   IF(k >0) THEN
    Error_Status = CRTM_Init( Sensor_Id, &
                              ChannelInfo, &
                              Aerosol_Model       = 'CRTM', &
@@ -66,6 +70,21 @@ PROGRAM CRTM_radar_test_FWTLADK
                              SpcCoeff_Format     = 'netCDF', &
                              TauCoeff_Format     = 'netCDF', &
          File_Path='./testinput/') 
+  END IF
+
+   Error_Status = CRTM_Init( Sensor_Id, &
+                             ChannelInfo, &
+                             Aerosol_Model       = 'CRTM', &
+                             AerosolCoeff_Format = 'netCDF', &
+                             AerosolCoeff_File   = &
+       '../CRTM_Coeff_BigEndian/AerosolCoeff_liu.nc', &
+       Cloud_Model         = 'CRTM', & 
+       CloudCoeff_Format   = "netCDF", &
+       CloudCoeff_File     = '../CRTM_Coeff_BigEndian/CloudCoeff_liu.nc', &
+                             SpcCoeff_Format     = 'netCDF', &
+                             TauCoeff_Format     = 'netCDF', &
+       File_Path='../CRTM_Coeff_BigEndian/') 
+
 
 
    SC(1)%Is_Active_Sensor  = .TRUE.
