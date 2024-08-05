@@ -94,7 +94,7 @@ def plot_Z():
     print(' CloudSAT observation ')
     # Plot CloudSat observation
     #
-    csatFile = './testinput/2009231162830_17611_CS_2B-GEOPROF_GRANULE_P1_R05_E02_F00.nc'
+    csatFile = './2009231162830_17611_CS_2B-GEOPROF_GRANULE_P1_R05_E02_F00.nc'
     csat = read_ClousSat_Z( csatFile)
     z2 = csat['Z']
     x2 = range(1, z2.shape[1]+1) #profile numbers 
