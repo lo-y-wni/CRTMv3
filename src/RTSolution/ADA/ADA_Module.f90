@@ -884,7 +884,7 @@ CONTAINS
    DO i = 1, nZ
      EE(i,i) = ONE
    END DO
-   HH = matmul(A-B,A+B)
+   HH = matmul(A(1:nZ,1:nZ)-B(1:nZ,1:nZ),A(1:nZ,1:nZ)+B(1:nZ,1:nZ))
    RTV%HH(1:nZ,1:nZ,KL) = HH(:,:)
    max_H = maxval(abs(RTV%HH(1:nZ,1:nZ,KL)))
    max_H =sqrt(max_H) * optical_depth2
