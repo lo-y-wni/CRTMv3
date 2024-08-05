@@ -23,8 +23,8 @@ EXE_FILE = CRTM_Model_Simulator
 #EXE_FILE = CRTM_Model_atms
 OBJ_FILES = $(EXE_FILE).o
 # ------ Please revise two lines below for your netcdf  ----------------------------
-##INCLUDES = -I../build/module/crtm/Intel/19.0.5.20190815 -I/data/starfs1/libs/netcdf-4.2-ifort/include
-##LIBRARIES = -qopenmp -L../build/src -lcrtm -L/data/starfs1/libs/netcdf-4.2-ifort/lib -lnetcdff
+INCLUDES = -I../build/module/crtm/Intel/19.0.5.20190815 -I/data/starfs1/libs/netcdf-4.2-ifort/include
+LIBRARIES = -qopenmp -L../build/src -lcrtm -L/data/starfs1/libs/netcdf-4.2-ifort/lib -lnetcdff
 
 # ifort on hera
 #INCLUDES = -I../build/module/crtm/Intel/2021.5.0.20211109 -I/apps/netcdf/4.7.0/intel/18.0.5.274/include
@@ -34,8 +34,8 @@ OBJ_FILES = $(EXE_FILE).o
 #INCLUDES = -I../build/module/crtm/GNU/9.2.0 -I/apps/netcdf/4.9.2/gnu-9.2.0/include
 #LIBRARIES = -fopenmp -L../build/src -lcrtm -L/apps/netcdf/4.9.2/gnu-9.2.0/lib -lnetcdff
 
-INCLUDES = -I../build/module/crtm/GNU/11.4.1 -I/usr/lib64/gfortran/modules 
-LIBRARIES = -fopenmp -L../build/src -lcrtm -L/usr/lib64 -lnetcdff -lhdf5_fortran -lhdf5_hl_fortran -lhdf5hl_fortran 
+#2INCLUDES = -I../build/module/crtm/GNU/11.4.1 -I/usr/lib64/gfortran/modules 
+#2LIBRARIES = -fopenmp -L../build/src -lcrtm -L/usr/lib64 -lnetcdff -lhdf5_fortran -lhdf5_hl_fortran -lhdf5hl_fortran 
 
 all:
 	@echo "OS type detected: "`uname -s`
