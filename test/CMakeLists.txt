@@ -127,6 +127,17 @@ list( APPEND ScatteringSwitch_Sensor_Ids
         modis_aqua
 )
 
+list( APPEND User_Emissivity_Sensor_Ids
+        atms_n21
+        cris-fsr_n21
+        v.abi_g18
+        atms_npp
+        cris399_npp
+        v.abi_gr
+        abi_g18
+        modis_aqua
+)
+
 list( APPEND SOI_Sensor_Ids
         atms_n21
         cris-fsr_n21
@@ -206,6 +217,7 @@ list (APPEND common_tests
      ClearSky
      Aircraft
      ScatteringSwitch
+		 User_Emissivity
      SOI
      SSU
      VerticalCoordinates
