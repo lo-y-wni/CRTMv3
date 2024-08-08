@@ -9,7 +9,7 @@
 !       Written by:     Paul van Delst, 25-Sep-2004
 !                       paul.vandelst@noaa.gov
 !
- 
+
 MODULE CRTM_Options_Define
 
   ! ------------------
@@ -141,6 +141,7 @@ MODULE CRTM_Options_Define
     ! Aircraft flight level pressure
     ! Value > 0 turns "on" the aircraft option
     REAL(Double) :: Aircraft_Pressure = -ONE
+    REAL(Double) :: Obs_4_downward_P = -ONE
     REAL(Double) :: depolarization = 0.0279_fp  !  0.031_fp
     ! User defined number of RT solver streams (streams up + streams down)
     LOGICAL       :: Use_n_Streams = .FALSE.
@@ -167,7 +168,7 @@ MODULE CRTM_Options_Define
     LOGICAL :: Use_Direct_Reflectivity = .FALSE.
     REAL(Double), ALLOCATABLE :: Direct_Reflectivity(:) ! L
     LOGICAL :: Derive_Surface_Refl = .FALSE.
-    
+
     ! SSU instrument input
     TYPE(SSU_Input_type) :: SSU
 
@@ -230,7 +231,7 @@ CONTAINS
 !                             ATTRIBUTES: INTENT(IN OUT)
 !
 ! OPTIONAL INPUTS:
-!   Check_Input:              Set this logical argument to control checking of 
+!   Check_Input:              Set this logical argument to control checking of
 !                             the CRTM input data.
 !                             If == .TRUE. , the CRTM input data is checked [DEFAULT]
 !                                == .FALSE., no input data checking is done.
@@ -238,7 +239,7 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!     
+!
 !   Use_Old_MWSSEM:           Set this logical argument to invoke the previous version
 !                             of the microwave sea surface emissivity model.
 !                             If == .TRUE. , the old model is used.
@@ -247,7 +248,7 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!              
+!
 !   Use_Antenna_Correction:   Set this logical argument to apply an antenna correction
 !                             to the computed brightness temperatures for certain
 !                             microwave instruments (AMSU-A/B, MHS)
@@ -257,7 +258,7 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!               
+!
 !   Apply_NLTE_Correction:    Set this logical argument to apply an non-LTE correction
 !                             to shortwave infrared radiances.
 !                             If == .TRUE. , non-LTE correction is applied [DEFAULT]
@@ -266,7 +267,7 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!                 
+!
 !   Set_ADA_RT:
 !   Set_SOI_RT:               Set this logical argument to use the specified algorithm
 !                             for scattering radiative transfer.
@@ -278,7 +279,7 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!                                
+!
 !   Include_Scattering:       Set this logical argument to control the inclusion of
 !                             cloud and aerosol scattering in the radiative transfer.
 !                             If == .TRUE. , scattering calculations are performed [DEFAULT]
@@ -287,11 +288,11 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!                          
-!   Set_Maximum_Overlap:      
-!   Set_Random_Overlap:       
-!   Set_MaxRan_Overlap:       
-!   Set_Average_Overlap:      Use these logical arguments to set the cloud overlap 
+!
+!   Set_Maximum_Overlap:
+!   Set_Random_Overlap:
+!   Set_MaxRan_Overlap:
+!   Set_Average_Overlap:      Use these logical arguments to set the cloud overlap
 !                             methodology for fractionally cloudy input profiles.
 !                             If == .TRUE. , the corresponding overlap method is used.
 !                             Note: - By default, the average overlap method is used.
@@ -314,7 +315,7 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!                          
+!
 !   Use_Direct_Reflectivity:  Set this logical argument to control the use of the direct
 !                             reflectivity spectrum included in the object.
 !                             If == .TRUE. , use the included direct reflectivity spectrum
@@ -327,7 +328,7 @@ CONTAINS
 !                             TYPE:       LOGICAL
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!                          
+!
 !   n_Streams:                Set this integer argument to the number of streams (up + down)
 !                             to use in the radiative transfer solver for scattering
 !                             atmospheres.
@@ -337,7 +338,7 @@ CONTAINS
 !                             TYPE:       INTEGER
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!                                          
+!
 !   Aircraft_Pressure:        Set this real argument to aircraft pressure level to use
 !                             for an aircraft instrument simulation.
 !                             Note: This option has not been rigorously tested.
@@ -345,7 +346,7 @@ CONTAINS
 !                             TYPE:       REAL(fp)
 !                             DIMENSION:  Conformable with Options object
 !                             ATTRIBUTES: INTENT(IN), OPTIONAL
-!                                              
+!
 !:sdoc-:
 !--------------------------------------------------------------------------------
 
@@ -381,7 +382,7 @@ CONTAINS
     LOGICAL ,      OPTIONAL, INTENT(IN)     :: Set_MaxRan_Overlap
     LOGICAL ,      OPTIONAL, INTENT(IN)     :: Set_Average_Overlap
     LOGICAL ,      OPTIONAL, INTENT(IN)     :: Set_Overcast_Overlap
-    LOGICAL ,      OPTIONAL, INTENT(IN)     :: Use_Emissivity         
+    LOGICAL ,      OPTIONAL, INTENT(IN)     :: Use_Emissivity
     LOGICAL ,      OPTIONAL, INTENT(IN)     :: Use_Direct_Reflectivity
     INTEGER ,      OPTIONAL, INTENT(IN)     :: n_Streams
     REAL(fp),      OPTIONAL, INTENT(IN)     :: Aircraft_Pressure
@@ -415,8 +416,8 @@ CONTAINS
       self%Overlap_Id = DEFAULT_OVERLAP_ID
     ELSE
       IF ( PRESENT(Set_Maximum_Overlap) ) self%Overlap_Id = CloudCover_Maximum_Overlap()
-      IF ( PRESENT(Set_Random_Overlap ) ) self%Overlap_Id = CloudCover_Random_Overlap() 
-      IF ( PRESENT(Set_MaxRan_Overlap ) ) self%Overlap_Id = CloudCover_MaxRan_Overlap() 
+      IF ( PRESENT(Set_Random_Overlap ) ) self%Overlap_Id = CloudCover_Random_Overlap()
+      IF ( PRESENT(Set_MaxRan_Overlap ) ) self%Overlap_Id = CloudCover_MaxRan_Overlap()
       IF ( PRESENT(Set_Average_Overlap) ) self%Overlap_Id = CloudCover_Average_Overlap()
       IF ( PRESENT(Set_Overcast_Overlap)) self%Overlap_Id = CloudCover_Overcast_Overlap()
     END IF
@@ -424,7 +425,7 @@ CONTAINS
     ! The emissivity and reflectivity spectra
     IF ( PRESENT(Use_Emissivity) ) &
       self%Use_Emissivity = Use_Emissivity .AND. self%Is_Allocated
-      
+
     IF ( PRESENT(Use_Direct_Reflectivity) ) &
       self%Use_Direct_Reflectivity = Use_Direct_Reflectivity .AND. self%Is_Allocated
 
@@ -438,7 +439,7 @@ CONTAINS
 !   CRTM_Options_SetEmissivity
 !
 ! PURPOSE:
-!   Subroutine to set the values of the emissivity and direct reflectivity 
+!   Subroutine to set the values of the emissivity and direct reflectivity
 !   spectra in a CRTM_Options object.
 !
 !   This procedure also sets the usage flags for the emissivity and direct
@@ -471,13 +472,13 @@ CONTAINS
 !                         TYPE:       REAL(fp)
 !                         DIMENSION:  Scalar or Rank-1
 !                         ATTRIBUTES: INTENT(IN)
-!                        
+!
 ! OPTIONAL INPUTS:
 !   Direct_Reflectivity:  Direct reflectivity scalar value or spectrum array.
 !                         If SCALAR: - The Options object MUST already be allocated.
 !                                    - The scalar value is applied to every element
 !                                      of the object direct reflectivity array.
-!                            RANK-1: - The array size must be the same as the 
+!                            RANK-1: - The array size must be the same as the
 !                                      input emissivity array. If not, the
 !                                      object direct reflectivity array is
 !                                      (re)allocated and set to zero.
@@ -485,7 +486,7 @@ CONTAINS
 !                         TYPE:       REAL(fp)
 !                         DIMENSION:  Same as Emissivity argument
 !                         ATTRIBUTES: INTENT(IN), OPTIONAL
-!                                              
+!
 !:sdoc-:
 !--------------------------------------------------------------------------------
 
@@ -501,7 +502,7 @@ CONTAINS
     CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Options_SetEmissivity(Scalar)'
     ! Local variables
     CHARACTER(ML) :: msg
-    
+
     ! Setup
     self%Use_Emissivity          = .FALSE.  ! Turn it off
     self%Use_Direct_Reflectivity = .FALSE.  ! Turn it off
@@ -510,11 +511,11 @@ CONTAINS
       CALL Display_Message( ROUTINE_NAME, msg, FAILURE )
       RETURN
     END IF
-    
+
     ! Assign the emissivity
     self%Emissivity     = Emissivity
     self%Use_Emissivity = .TRUE.
-    
+
     ! Assign the direct reflectivity if supplied
     IF ( PRESENT(Direct_Reflectivity) ) THEN
       self%Direct_Reflectivity     = Direct_Reflectivity
@@ -537,15 +538,15 @@ CONTAINS
     ! Local variables
     CHARACTER(ML) :: msg
     INTEGER :: i
-    
+
     ! Setup
     self%Use_Direct_Reflectivity = .FALSE.  ! Turn it off
-    
+
     ! Assign the emissivity
     self%Emissivity     = Emissivity        ! Auto (re)allocation
     self%Use_Emissivity = .TRUE.
     self%n_Channels     = SIZE(Emissivity)
-    
+
     ! Assign the direct reflectivity if supplied
     IF ( PRESENT(Direct_Reflectivity) ) THEN
       IF ( SIZE(Direct_Reflectivity) == self%n_Channels ) THEN
@@ -561,7 +562,7 @@ CONTAINS
 
     ! Set the allocation flag
     self%Is_Allocated = ALLOCATED(self%Emissivity) .AND. ALLOCATED(self%Direct_Reflectivity)
-                
+
   END SUBROUTINE SetEmissivity_rank1
 !--------------------------------------------------------------------------------
 !:sdoc+:
@@ -749,7 +750,7 @@ CONTAINS
         IsValid = .FALSE.
       END IF
     END IF
-        
+
     ! Check emissivity options
     IF ( self%Use_Emissivity .OR. self%Use_Direct_Reflectivity ) THEN
       IF ( CRTM_Options_Associated(self) ) THEN

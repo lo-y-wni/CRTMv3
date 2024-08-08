@@ -98,7 +98,7 @@ MODULE CRTM_Forward_Module
   USE CRTM_CloudCover_Define,     ONLY: CRTM_CloudCover_type
   USE CRTM_Active_Sensor,         ONLY: CRTM_Compute_Reflectivity, &
                                         Calculate_Cloud_Water_Density
-                                        
+
   ! Internal variable definition modules
   ! ...AtmOptics
   USE AOvar_Define, ONLY: AOvar_type, &
@@ -365,7 +365,7 @@ CONTAINS
                 Atmosphere(m)%Cloud(nc)%Effective_Radius(:) = ZERO
              END WHERE
           END DO
-          
+
           ! Check the cloud and aerosol coeff. data for cases with clouds and aerosol
           IF( .NOT. CRTM_CloudCoeff_IsLoaded() )THEN
              Error_Status = FAILURE
@@ -597,7 +597,7 @@ CONTAINS
          CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
          RETURN
       END IF
-      
+
       IF( (CloudC%N_PHASE_ELEMENTS /= AeroC%N_PHASE_ELEMENTS) .OR. &
            (RTV(1)%n_Stokes > 1.AND.CloudC%N_PHASE_ELEMENTS < 6) ) THEN
          Error_Status = FAILURE
@@ -605,10 +605,10 @@ CONTAINS
          CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
          RETURN
       END IF
-      
-      ! Calculate cloud water density 
+
+      ! Calculate cloud water density
       CALL Calculate_Cloud_Water_Density(Atm)
-      
+
       !$OMP PARALLEL DO NUM_THREADS(n_channel_threads) PRIVATE(Message)
       DO nt = 1, n_channel_threads
          ! Prepare the atmospheric optics structures
@@ -697,22 +697,24 @@ CONTAINS
       !$OMP PARALLEL DO NUM_THREADS(n_channel_threads)
       DO nt = 1, n_channel_threads
          CALL CRTM_Compute_SurfaceT( Surface(m), SfcOptics(nt) )
-         ! Process aircraft pressure altitude
-         IF ( Opt%Aircraft_Pressure > ZERO ) THEN
-            RTV(nt)%aircraft%rt = .TRUE.
-            RTV(nt)%aircraft%idx = CRTM_Get_PressureLevelIdx(Atm, Opt%Aircraft_Pressure)
-            ! ...Issue warning if profile level is TOO different from flight level
-            IF ( ABS(Atm%Level_Pressure(RTV(nt)%aircraft%idx)-Opt%Aircraft_Pressure) > AIRCRAFT_PRESSURE_THRESHOLD ) THEN
-               WRITE( Message,'("Difference between aircraft pressure level (",es22.15,&
-                    &"hPa) and closest input profile level (",es22.15,&
-                    &"hPa) is larger than recommended (",f4.1,"hPa) for profile #",i0)') &
-                    Opt%Aircraft_Pressure, Atm%Level_Pressure(RTV(nt)%aircraft%idx), &
-                    AIRCRAFT_PRESSURE_THRESHOLD, m
-               CALL Display_Message( ROUTINE_NAME, Message, WARNING )
-            END IF
-         ELSE
-            RTV(nt)%aircraft%rt = .FALSE.
-         END IF
+
+         ! CD : this section is deleted and moved to the later n_channel_threads loop
+         ! ! Process aircraft pressure altitude
+         ! IF ( Opt%Aircraft_Pressure > ZERO ) THEN
+         !    RTV(nt)%aircraft%rt = .TRUE.
+         !    RTV(nt)%aircraft%idx = CRTM_Get_PressureLevelIdx(Atm, Opt%Aircraft_Pressure)
+         !    ! ...Issue warning if profile level is TOO different from flight level
+         !    IF ( ABS(Atm%Level_Pressure(RTV(nt)%aircraft%idx)-Opt%Aircraft_Pressure) > AIRCRAFT_PRESSURE_THRESHOLD ) THEN
+         !       WRITE( Message,'("Difference between aircraft pressure level (",es22.15,&
+         !            &"hPa) and closest input profile level (",es22.15,&
+         !            &"hPa) is larger than recommended (",f4.1,"hPa) for profile #",i0)') &
+         !            Opt%Aircraft_Pressure, Atm%Level_Pressure(RTV(nt)%aircraft%idx), &
+         !            AIRCRAFT_PRESSURE_THRESHOLD, m
+         !       CALL Display_Message( ROUTINE_NAME, Message, WARNING )
+         !    END IF
+         ! ELSE
+         !    RTV(nt)%aircraft%rt = .FALSE.
+         ! END IF
 
       END DO
       !$OMP END PARALLEL DO
@@ -756,6 +758,41 @@ CONTAINS
          !$OMP PARALLEL DO NUM_THREADS(n_channel_threads) PRIVATE(Message)
          DO nt = 1, n_channel_threads
 
+            ! Process aircraft pressure altitude
+            IF ( Opt%Aircraft_Pressure > ZERO ) THEN
+               RTV(nt)%aircraft%rt = .TRUE.
+               RTV(nt)%aircraft%idx = CRTM_Get_PressureLevelIdx(Atm, Opt%Aircraft_Pressure)
+               ! ...Issue warning if profile level is TOO different from flight level
+               IF ( ABS(Atm%Level_Pressure(RTV(nt)%aircraft%idx)-Opt%Aircraft_Pressure) > AIRCRAFT_PRESSURE_THRESHOLD ) THEN
+                  WRITE( Message,'("Difference between aircraft pressure level (",es22.15,&
+                       &"hPa) and closest input profile level (",es22.15,&
+                       &"hPa) is larger than recommended (",f4.1,"hPa) for profile #",i0)') &
+                       Opt%Aircraft_Pressure, Atm%Level_Pressure(RTV(nt)%aircraft%idx), &
+                       AIRCRAFT_PRESSURE_THRESHOLD, m
+                  CALL Display_Message( ROUTINE_NAME, Message, WARNING )
+               END IF
+            ELSE
+               RTV(nt)%aircraft%rt = .FALSE.
+            END IF
+
+            ! Process observing downward radiance, Obs_4_downward_P = ZERO means at surface
+            !  Obs_4_downward_P > ZERO, sensor at the pressure
+            IF ( Opt%Obs_4_downward_P > ZERO ) THEN
+               RTV(nt)%Obs_4_downward%rt = .TRUE.
+               RTV(nt)%Obs_4_downward%idx = CRTM_Get_PressureLevelIdx(Atm, Opt%Obs_4_downward_P)
+               ! ...Issue warning if profile level is TOO different from flight level
+               IF ( ABS(Atm%Level_Pressure(RTV(nt)%Obs_4_downward%idx)-Opt%Obs_4_downward_P) > AIRCRAFT_PRESSURE_THRESHOLD ) THEN
+                  WRITE( Message,'("Difference between Obs pressure level (",es22.15,&
+                                   &"hPa) and closest input profile level (",es22.15,&
+                                   &"hPa) is larger than recommended (",f4.1,"hPa) for profile #",i0)') &
+                                   Opt%Obs_4_downward_P, Atm%Level_Pressure(RTV%Obs_4_downward%idx), &
+                                   AIRCRAFT_PRESSURE_THRESHOLD, m
+                  CALL Display_Message( ROUTINE_NAME, Message, WARNING )
+               END IF
+            ELSE
+               RTV(nt)%Obs_4_downward%rt = .FALSE.
+            END IF
+
             ! Compute predictors for AtmAbsorption calcs
             ! ...Allocate the predictor structure
 
@@ -766,7 +803,7 @@ CONTAINS
                  SpcCoeff_IsVisibleSensor(SC(SensorIndex)) ) .AND. &
                  AtmOptics(nt)%Include_Scattering ) THEN
                CALL RTV_Create( RTV(nt), MAX_N_ANGLES, MAX_N_LEGENDRE_TERMS, Atm%n_Layers )
-               
+
                IF ( .NOT. RTV_Associated(RTV(nt)) ) THEN
                   Error_Status=FAILURE
                   WRITE( Message,'("Error allocating RTV structure for profile #",i0, &
@@ -1121,7 +1158,7 @@ CONTAINS
                   RTSolution(ln,m)%Tb_clear = RTSolution(ln,m)%Brightness_Temperature
                   RTSolution(ln,m)%R_clear  = RTSolution(ln,m)%Radiance
                END IF
-               
+
                ! Calculate reflectivity for active instruments
                IF  ( (SC(SensorIndex)%Is_Active_Sensor) .AND. (AtmOptics(nt)%Include_Scattering)) THEN
                        CALL CRTM_Compute_Reflectivity(Atm             , & ! Input
@@ -1131,7 +1168,7 @@ CONTAINS
                                                   ChannelIndex        , & ! Input
                                                   RTSolution(ln,m))       ! Input/Output
                ENDIF
-          
+
             END DO Channel_Loop
          END DO Thread_Loop
          !$OMP END PARALLEL DO
@@ -1177,7 +1214,7 @@ CONTAINS
       INTEGER,                      INTENT(IN)     :: ChannelIndex, SensorIndex
       LOGICAL,                      INTENT(IN)     :: compute_antenna_correction
       TYPE(CRTM_GeometryInfo_type), INTENT(IN)     :: GeometryInfo
-      
+
       ! Compute non-LTE correction to radiance if required
       IF ( Opt%Apply_NLTE_Correction .AND. NLTE_Predictor_IsActive(NLTE_Predictor) ) THEN
          CALL Compute_NLTE_Correction( &
