@@ -23,13 +23,14 @@ MODULE CRTM_Active_Sensor
                                       SpcCoeff_IsVisibleSensor   , &
                                       SpcCoeff_IsUltravioletSensor
   USE CRTM_Atmosphere_Define,   ONLY: CRTM_Atmosphere_type, &
-                                      H2O_ID
+                                      H2O_ID, MASS_MIXING_RATIO_UNITS
   USE CRTM_AtmOptics_Define,     ONLY: CRTM_AtmOptics_type
   USE CRTM_RTSolution_Define,    ONLY: CRTM_RTSolution_type
   USE Spectral_Units_Conversion, ONLY: GHz_to_inverse_cm
   USE Fundamental_Constants,     ONLY: PI
   USE ODPS_CoordinateMapping,     ONLY: Geopotential_Height
-    USE CRTM_GeometryInfo_Define, ONLY: CRTM_GeometryInfo_type
+  USE CRTM_GeometryInfo_Define, ONLY: CRTM_GeometryInfo_type
+  USE Message_Handler         , ONLY: Display_Message
 
   ! Disable all implicit typing
   IMPLICIT NONE
@@ -121,21 +122,20 @@ END FUNCTION Calculate_Height
 !                       DIMENSION:  Scalar
 !                       ATTRIBUTES: INTENT(IN/OUT)
 !
-!       GeometryInfo:   Structure containing the view geometry data.
-!                       UNITS:      N/A
-!                       TYPE:       CRTM_GeometryInfo_type
-!                       DIMENSION:  Scalar
-!                       ATTRIBUTES: INTENT(IN)
-!
 !--------------------------------------------------------------------------------
 
-SUBROUTINE Calculate_Cloud_Water_Density(Atm, &
-                                         GeometryInfo)
+SUBROUTINE Calculate_Cloud_Water_Density(Atm)
    TYPE(CRTM_Atmosphere_type), INTENT(IN OUT)     :: Atm
-   TYPE(CRTM_GeometryInfo_type), OPTIONAL, INTENT(IN)     :: GeometryInfo
    INTEGER :: n_Layers
    REAL(fp) :: Height(0:Atm%n_Layers), dZ_m(Atm%n_Layers)
    Integer :: n
+
+    ! Function result
+    INTEGER :: Error_Status
+    ! Local parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Calculate_Cloud_Water_Density'
+    ! Local variables
+    CHARACTER(256) :: Message
 
    n_Layers = Atm%n_Layers
 
@@ -145,9 +145,13 @@ SUBROUTINE Calculate_Cloud_Water_Density(Atm, &
    END IF
 
    dZ_m = (Atm%Height(0:n_Layers-1) - Atm%Height(1:n_Layers)) * ONE_THOUSAND
-   IF (PRESENT(GeometryInfo)) THEN
-       dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
-   ENDIF
+
+   IF (ANY(dZ_m <= 0)) THEN
+      Message = 'Error in calculating cloud water density - layer thickness needs to be greater than zero!'
+      CALL Display_Message( ROUTINE_NAME, TRIM(Message), Error_Status )
+      RETURN
+    END IF
+
 
    DO n = 1, Atm%n_Clouds
       Atm%Cloud(n)%Water_Density = Atm%Cloud(n)%Water_Content / dZ_m
@@ -350,7 +354,7 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE
         Height = Atm%Height
     ENDIF
-    dZ_m = (Atm%Height(0:Atm%n_Layers-1) - Atm%Height(1:Atm%n_Layers)) * ONE_THOUSAND
+    dZ_m = (Height(0:Atm%n_Layers-1) - Height(1:Atm%n_Layers)) * ONE_THOUSAND
     dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
 
     IF ( SpcCoeff_IsMicrowaveSensor(SC(SensorIndex)) ) THEN
@@ -372,12 +376,14 @@ END FUNCTION Water_Permittivity_Turner_2016
     Kw_2 = ABS(kw)**TWO
 
     P1 = (M6_MM6 * Wavelength_m**4.0_fp) / (PI**5.0_fp * Kw_2)
-    P1 = P1 / dZ_m  ! dZ_m to convert water_content to m/v or cloud water density
+    P1 = P1 / dZ_m  ! dZ_m to convert BackScatter coefficient from unitless to 1/cm
     ! Calculate transmittance from top to layer k
+    ! Optical depth is not scaled for zenith angle
     DO k = 1, AtmOptics%n_layers
-       Transmittance(k) = EXP(-TWO * SUM(AtmOptics%optical_depth(1:k)))
+       Transmittance(k) = EXP(-TWO * SUM(AtmOptics%optical_depth(1:k) / &
+                               GeometryInfo%Cosine_Sensor_Zenith))
     END DO
-
+    
     Reflectivity =  P1 * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
     Reflectivity_Attenuated = P1 * Transmittance * (AtmOptics%Backscat_Coefficient) ! mm^6 m^-3
 
@@ -396,7 +402,6 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE WHERE
         RTSolution%Reflectivity_Attenuated = MISSING_REFL
     END WHERE
-
   END SUBROUTINE CRTM_Compute_Reflectivity
 
 
@@ -508,7 +513,7 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE
         Height = Atm%Height
     ENDIF
-    dZ_m = (Atm%Height(0:Atm%n_Layers-1) - Atm%Height(1:Atm%n_Layers)) * ONE_THOUSAND
+    dZ_m = (Height(0:Atm%n_Layers-1) - Height(1:Atm%n_Layers)) * ONE_THOUSAND
     dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
 
     IF ( SpcCoeff_IsMicrowaveSensor(SC(SensorIndex)) ) THEN
@@ -686,7 +691,7 @@ END FUNCTION Water_Permittivity_Turner_2016
     ELSE
         Height = Atm%Height
     ENDIF
-    dZ_m = (Atm%Height(0:Atm%n_Layers-1) - Atm%Height(1:Atm%n_Layers)) * ONE_THOUSAND
+    dZ_m = (Height(0:Atm%n_Layers-1) - Height(1:Atm%n_Layers)) * ONE_THOUSAND
     dZ_m = dZ_m / GeometryInfo%Cosine_Sensor_Zenith
 
     IF ( SpcCoeff_IsMicrowaveSensor(SC(SensorIndex)) ) THEN

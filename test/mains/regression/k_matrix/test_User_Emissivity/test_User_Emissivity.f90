@@ -1,11 +1,12 @@
 !
-! test_Simple
+! test_User_Emissivity
 !
-! Test program for the CRTM Adjoint function including clouds and aerosols.
+! Test program to test user-defined emissivity
+! in the CRTM K-Matrix function. 
 !
 !
 
-PROGRAM test_Aerosol_Bypass_Adjoint
+PROGRAM test_User_Emissivity
 
   ! ============================================================================
   ! **** ENVIRONMENT SETUP FOR RTM USAGE ****
@@ -20,25 +21,19 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   ! ----------
   ! Parameters
   ! ----------
-  CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'test_Aerosol_Bypass_Adjoint'
+  CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'test_User_Emissivity'
   CHARACTER(*), PARAMETER :: COEFFICIENTS_PATH = './testinput/'
-  CHARACTER(*), PARAMETER :: RESULTS_PATH = './results/unit/'
-
-
-  ! Aerosol/Cloud coefficient format
-  CHARACTER(*), PARAMETER :: Coeff_Format = 'Binary'
-  !CHARACTER(*), PARAMETER :: Coeff_Format = 'netCDF'
-
-
+  CHARACTER(*), PARAMETER :: RESULTS_PATH = './results/k_matrix/'
 
   ! ============================================================================
-  ! 0. **** SOME SET UP PARAMETERS FOR THIS EXAMPLE ****
+  ! 0. **** SOME SET UP PARAMETERS FOR THIS TEST ****
   !
   ! Profile dimensions...
-  INTEGER, PARAMETER :: N_PROFILES  = 2
+  INTEGER, PARAMETER :: N_PROFILES  = 1
   INTEGER, PARAMETER :: N_LAYERS    = 92
   INTEGER, PARAMETER :: N_ABSORBERS = 2
-  INTEGER, PARAMETER :: N_CLOUDS    = 1
+  INTEGER, PARAMETER :: N_CLOUDS    = 0
+  INTEGER, PARAMETER :: N_AEROSOLS  = 0
   ! ...but only ONE Sensor at a time
   INTEGER, PARAMETER :: N_SENSORS = 1
 
@@ -46,6 +41,8 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   ! on the default Re (earth radius) and h (satellite height)
   REAL(fp), PARAMETER :: ZENITH_ANGLE = 30.0_fp
   REAL(fp), PARAMETER :: SCAN_ANGLE   = 26.37293341421_fp
+  REAL(fp), PARAMETER :: SOURCE_ZENITH_ANGLE = 0.0_fp
+  ! ============================================================================
 
 
   ! ---------
@@ -54,24 +51,17 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   CHARACTER(256) :: Message
   CHARACTER(256) :: Version
   CHARACTER(256) :: Sensor_Id
-  CHARACTER(256) :: AerosolCoeff_File
-  CHARACTER(256) :: AerosolCoeff_Format
-  CHARACTER(256) :: CloudCoeff_File
-  CHARACTER(256) :: CloudCoeff_Format
-
   INTEGER :: Error_Status
   INTEGER :: Allocate_Status
   INTEGER :: n_Channels
   INTEGER :: l, m
-  INTEGER :: N_AEROSOLS, ICASE
-
-  ! Declarations for Adjoint comparisons
+  ! Declarations for Jacobian comparisons
   INTEGER :: n_la, n_ma
   INTEGER :: n_ls, n_ms
-  CHARACTER(256) :: atmad_file, sfcad_file
-  TYPE(CRTM_Atmosphere_type), ALLOCATABLE :: atm_AD(:)
-  TYPE(CRTM_Surface_type)   , ALLOCATABLE :: sfc_AD(:)
-
+  CHARACTER(356) :: atmk_File, sfck_File
+  TYPE(CRTM_Atmosphere_type), ALLOCATABLE :: atm_k(:,:)
+  TYPE(CRTM_Surface_type)   , ALLOCATABLE :: sfc_k(:,:)
+  REAL(fp), ALLOCATABLE :: Emissivity(:)
 
   ! ============================================================================
   ! 1. **** DEFINE THE CRTM INTERFACE STRUCTURES ****
@@ -84,36 +74,43 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   TYPE(CRTM_Surface_type)                 :: Sfc(N_PROFILES)
   TYPE(CRTM_RTSolution_type), ALLOCATABLE :: RTSolution(:,:)
 
-  ! Define the ADJOINT variables
-  TYPE(CRTM_Atmosphere_type)              :: Atmosphere_AD(N_PROFILES)
-  TYPE(CRTM_Surface_type)                 :: Surface_AD(N_PROFILES)
-  TYPE(CRTM_RTSolution_type), ALLOCATABLE :: RTSolution_AD(:,:)
+  ! Define the K-MATRIX variables
+  TYPE(CRTM_Atmosphere_type), ALLOCATABLE :: Atmosphere_K(:,:)
+  TYPE(CRTM_Surface_type),    ALLOCATABLE :: Surface_K(:,:)
+  TYPE(CRTM_RTSolution_type), ALLOCATABLE :: RTSolution_K(:,:)
+
+  ! Define the Optional variable
+  TYPE(CRTM_Options_type)                 :: Opt(N_PROFILES)
   ! ============================================================================
 
 
   !First, make sure the right number of inputs have been provided
-  Sensor_Id = 'atms_npp'
+  IF(COMMAND_ARGUMENT_COUNT().NE.1)THEN
+     WRITE(*,*) TRIM(PROGRAM_NAME)//': ERROR, ONLY one command-line argument required, returning'
+     STOP 1
+  ENDIF
+  CALL GET_COMMAND_ARGUMENT(1,Sensor_Id)   !read in the value
+
 
   ! Program header
   ! --------------
   CALL CRTM_Version( Version )
-  CALL Program_Message( PROGRAM_NAME, &
-    'Test program for the CRTM Adjoint function including clouds and aerosols.', &
+  CALL Program_Message( PROGRAM_NAME, '', &
     'CRTM Version: '//TRIM(Version) )
 
 
   ! Get sensor id from user
   ! -----------------------
   Sensor_Id = ADJUSTL(Sensor_Id)
-  WRITE( *,'(//5x,"Running CRTM for ",a," sensor...")' ) TRIM(Sensor_Id)
+  WRITE( *,'(//5x,"Running CRTM for ",a," sensor...")' ) TRIM(PROGRAM_NAME)//'_'//TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)
+
 
 
   ! ============================================================================
   ! 2. **** INITIALIZE THE CRTM ****
   !
-  ! 2a. Initialise the requested sensor
-  ! -----------------------------------
-
+  ! 2a. Initialises the requested sensor
+  ! ------------------------------------
   WRITE( *,'(/5x,"Initializing the CRTM...")' )
   Error_Status = CRTM_Init( (/Sensor_Id/), &
                             ChannelInfo, &
@@ -124,37 +121,31 @@ PROGRAM test_Aerosol_Bypass_Adjoint
     STOP 1
   END IF
 
-  ! 2b. Determine the total number of channels
-  !     for which the CRTM was initialized
+
+  ! 2b. Determine the number of channels the
+  !     CRTM is to process
   ! ------------------------------------------
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
+  ! ============================================================================
+
+
+
 
   ! ============================================================================
   ! 3. **** ALLOCATE STRUCTURE ARRAYS ****
   !
   ! 3a. Allocate the ARRAYS
   ! -----------------------
-  print *, 'Allocate the ARRAYS'
   ALLOCATE( RTSolution( n_Channels, N_PROFILES ), &
-            RTSolution_AD( n_Channels, N_PROFILES ), &
+            Atmosphere_K( n_Channels, N_PROFILES ), &
+            Surface_K( n_Channels, N_PROFILES ), &
+            RTSolution_K( n_Channels, N_PROFILES ), &
             STAT = Allocate_Status )
   IF ( Allocate_Status /= 0 ) THEN
     Message = 'Error allocating structure arrays'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
-
-  ! ============================================================================
-
-  DO ICASE = 1, 2
-
-    ! --------------------------------
-    IF (ICASE == 1) THEN
-      N_AEROSOLS = 2
-    END IF
-    IF (ICASE == 2) THEN
-      N_AEROSOLS = 3
-    END IF
 
   ! 3b. Allocate the STRUCTURES
   ! ---------------------------
@@ -166,10 +157,10 @@ PROGRAM test_Aerosol_Bypass_Adjoint
     STOP 1
   END IF
 
-  ! The output ADJOINT structure
-  CALL CRTM_Atmosphere_Create( Atmosphere_AD, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
-  IF ( ANY(.NOT. CRTM_Atmosphere_Associated(Atmosphere_AD)) ) THEN
-    Message = 'Error allocating CRTM Atmosphere_AD structure'
+  ! The output K-MATRIX structure
+  CALL CRTM_Atmosphere_Create( Atmosphere_K, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
+  IF ( ANY(.NOT. CRTM_Atmosphere_Associated(Atmosphere_K)) ) THEN
+    Message = 'Error allocating CRTM Atmosphere_K structure'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
@@ -183,15 +174,8 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   !
   ! 4a. Atmosphere and Surface input
   ! --------------------------------
-  IF (ICASE == 1) THEN
-    CALL Load_Atm_Data()
-  END IF
-  IF (ICASE == 2) THEN
-    CALL Load_Atm_Data_Bypass_Aerosol()
-  END IF
-
+  CALL Load_Atm_Data()
   CALL Load_Sfc_Data()
-
 
 
   ! 4b. GeometryInfo input
@@ -200,32 +184,52 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   !  The Sensor_Scan_Angle is optional.
   CALL CRTM_Geometry_SetValue( Geometry, &
                                Sensor_Zenith_Angle = ZENITH_ANGLE, &
-                               Sensor_Scan_Angle   = SCAN_ANGLE )
+                               Sensor_Scan_Angle   = SCAN_ANGLE, &
+                               Source_Zenith_Angle = SOURCE_ZENITH_ANGLE )
+
+  ! 4c. Turn on user emissivity
+  Opt(1)%Use_Emissivity = .TRUE.
+  ALLOCATE( Emissivity( n_Channels ), STAT=Allocate_Status )
+  IF ( Allocate_Status /= 0 ) THEN
+     Message = 'Error allocating Emissivity'
+     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
+     STOP 1
+  END IF
+  Emissivity(:)  = 0.5_fp
+
+  CALL CRTM_Options_Create(Opt, n_Channels)
+  IF ( .NOT. CRTM_Options_Associated(Opt(1)) ) THEN
+     Message = 'Error allocating options structure'
+     CALL Display_Message( PROGRAM_NAME, Message, FAILURE ); STOP
+  END IF
+
+  CALL CRTM_Options_SetEmissivity(Opt(1), Emissivity)
+  
   ! ============================================================================
 
 
 
 
   ! ============================================================================
-  ! 5. **** INITIALIZE THE ADJOINT ARGUMENTS ****
+  ! 5. **** INITIALIZE THE K-MATRIX ARGUMENTS ****
   !
-  ! 5a. Zero the Adjoint OUTPUT structures
+  ! 5a. Zero the K-matrix OUTPUT structures
   ! ---------------------------------------
-  CALL CRTM_Atmosphere_Zero( Atmosphere_AD )
-  CALL CRTM_Surface_Zero( Surface_AD )
+  CALL CRTM_Atmosphere_Zero( Atmosphere_K )
+  CALL CRTM_Surface_Zero( Surface_K )
 
-  ! 5b. Inintialize the Adjoint INPUT so
+  ! 5b. Inintialize the K-matrix INPUT so
   !     that the IR/MW results are dTb/dx
   !     and the visible results are dR/dx
   ! -------------------------------------
   DO l = 1, n_Channels
     IF ( ChannelInfo(1)%Sensor_Type == INFRARED_SENSOR .OR. &
          ChannelInfo(1)%Sensor_Type == MICROWAVE_SENSOR ) THEN
-      RTSolution_AD(l,:)%Radiance               = ZERO
-      RTSolution_AD(l,:)%Brightness_Temperature = ONE
+      RTSolution_K(l,:)%Radiance               = ZERO
+      RTSolution_K(l,:)%Brightness_Temperature = ONE
     ELSE
-      RTSolution_AD(l,:)%Radiance               = ONE
-      RTSolution_AD(l,:)%Brightness_Temperature = ZERO
+      RTSolution_K(l,:)%Radiance               = ONE
+      RTSolution_K(l,:)%Brightness_Temperature = ZERO
     END IF
   END DO
   ! ============================================================================
@@ -234,24 +238,23 @@ PROGRAM test_Aerosol_Bypass_Adjoint
 
 
   ! ============================================================================
-  ! 6. **** CALL THE CRTM ADJOINT MODEL ****
+  ! 6. **** CALL THE CRTM K-MATRIX MODEL ****
   !
-
-  Error_Status = CRTM_Adjoint( Atm          , &
-                               Sfc          , &
-                               RTSolution_AD, &
-                               Geometry     , &
-                               ChannelInfo  , &
-                               Atmosphere_AD, &
-                               Surface_AD   , &
-                               RTSolution   )
+  Error_Status = CRTM_K_Matrix( Atm         , &
+                                Sfc         , &
+                                RTSolution_K, &
+                                Geometry    , &
+                                ChannelInfo , &
+                                Atmosphere_K, &
+                                Surface_K   , &
+                                RTSolution  , &
+                                Options = Opt )
   IF ( Error_Status /= SUCCESS ) THEN
-    Message = 'Error in CRTM Adjoint Model'
+    Message = 'Error in CRTM K_Matrix Model'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
   ! ============================================================================
-
 
 
 
@@ -260,23 +263,22 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   ! 7. **** OUTPUT THE RESULTS TO SCREEN ****
   !
   DO m = 1, N_PROFILES
-    WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, TRIM(Sensor_Id)
+    WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, SENSOR_ID
     DO l = 1, n_Channels
       WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
       ! FWD output
       WRITE( *, '(/3x,"FORWARD OUTPUT")')
       CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
+      ! K-MATRIX output
+      WRITE( *, '(/3x,"K-MATRIX OUTPUT")')
+      CALL CRTM_Surface_Inspect(Surface_K(l,m))
+      CALL CRTM_Atmosphere_Inspect(Atmosphere_K(l,m))
     END DO
-    ! ADJOINT output
-    WRITE( *, '(/3x,"ADJOINT OUTPUT")')
-    CALL CRTM_Surface_Inspect(Surface_AD(m))
-    CALL CRTM_Atmosphere_Inspect(Atmosphere_AD(m))
   END DO
   ! ============================================================================
 
-
   ! ============================================================================
-  ! 9. **** COMPARE Atmosphere_AD and Surface_AD RESULTS TO SAVED VALUES ****
+  ! 9. **** COMPARE Atmosphere_K and Surface_K RESULTS TO SAVED VALUES ****
   !
   WRITE( *, '( /5x, "Comparing calculated results with saved ones..." )' )
 
@@ -284,124 +286,112 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   ! ------------------------------------------------
   ! 9a.1 Atmosphere file
   ! ...Generate filename
-  atmad_file = RESULTS_PATH//TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)//'.Atmosphere.bin'
+  atmk_File = RESULTS_PATH//TRIM(PROGRAM_NAME)//'_'//TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)//'.Atmosphere.bin'
   ! ...Check if the file exists
-  IF ( .NOT. File_Exists(atmad_file) ) THEN
-    Message = 'Atmosphere_AD save file does not exist. Creating...'
+  IF ( .NOT. File_Exists(atmk_File) ) THEN
+    Message = 'Atmosphere_K save file does not exist. Creating...'
     CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
-    ! ...File not found, so write Atmosphere_AD structure to file
-    Error_Status = CRTM_Atmosphere_WriteFile( atmad_file, Atmosphere_AD, Quiet=.TRUE. )
+    ! ...File not found, so write Atmosphere_K structure to file
+    Error_Status = CRTM_Atmosphere_WriteFile( atmk_file, Atmosphere_K, Quiet=.TRUE. )
     IF ( Error_Status /= SUCCESS ) THEN
-      Message = 'Error creating Atmosphere_AD save file'
+      Message = 'Error creating Atmosphere_K save file'
       CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
       STOP 1
     END IF
   END IF
   ! 9a.2 Surface file
   ! ...Generate filename
-  sfcad_file = RESULTS_PATH//TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)//'.Surface.bin'
+  sfck_File = RESULTS_PATH//TRIM(PROGRAM_NAME)//'_'//TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)//'.Surface.bin'
   ! ...Check if the file exists
-  IF ( .NOT. File_Exists(sfcad_file) ) THEN
-    Message = 'Surface_AD save file does not exist. Creating...'
+  IF ( .NOT. File_Exists(sfck_File) ) THEN
+    Message = 'Surface_K save file does not exist. Creating...'
     CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
-    ! ...File not found, so write Surface_AD structure to file
-    Error_Status = CRTM_Surface_WriteFile( sfcad_file, Surface_AD, Quiet=.TRUE. )
+    ! ...File not found, so write Surface_K structure to file
+    Error_Status = CRTM_Surface_WriteFile( sfck_file, Surface_K, Quiet=.TRUE. )
     IF ( Error_Status /= SUCCESS ) THEN
-      Message = 'Error creating Surface_AD save file'
+      Message = 'Error creating Surface_K save file'
       CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
       STOP 1
     END IF
   END IF
 
-
-  END DO !ICASE
-
-
-
   ! 9b. Inquire the saved files
   ! ---------------------------
   ! 9b.1 Atmosphere file
-  Error_Status = CRTM_Atmosphere_InquireFile( atmad_file, &
+  Error_Status = CRTM_Atmosphere_InquireFile( atmk_File, &
                                               n_Channels = n_la, &
                                               n_Profiles = n_ma )
   IF ( Error_Status /= SUCCESS ) THEN
-    Message = 'Error inquiring Atmosphere_AD save file'
+    Message = 'Error inquiring Atmosphere_K save file'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
   ! 9b.2 Surface file
-  Error_Status = CRTM_Surface_InquireFile( sfcad_file, &
+  Error_Status = CRTM_Surface_InquireFile( sfck_File, &
                                            n_Channels = n_ls, &
                                            n_Profiles = n_ms )
   IF ( Error_Status /= SUCCESS ) THEN
-    Message = 'Error inquiring Surface_AD save file'
+    Message = 'Error inquiring Surface_K save file'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
 
   ! 9c. Compare the dimensions
   ! --------------------------
-  IF ( n_la /= 0 .OR. n_ma /= N_PROFILES .OR. &
-       n_ls /= 0 .OR. n_ms /= N_PROFILES      ) THEN
+  IF ( n_la /= n_Channels .OR. n_ma /= N_PROFILES .OR. &
+       n_ls /= n_Channels .OR. n_ms /= N_PROFILES      ) THEN
     Message = 'Dimensions of saved data different from that calculated!'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
 
-
   ! 9d. Read the saved data
   ! -----------------------
   ! 9d.1 Atmosphere file
-  Error_Status = CRTM_Atmosphere_ReadFile( atmad_file, atm_AD, Quiet=.TRUE. )
+  Error_Status = CRTM_Atmosphere_ReadFile( atmk_File, atm_k, Quiet=.TRUE. )
   IF ( Error_Status /= SUCCESS ) THEN
-    Message = 'Error reading Atmosphere_AD save file'
+    Message = 'Error reading Atmosphere_K save file'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
   ! 9d.2 Surface file
-  Error_Status = CRTM_Surface_ReadFile( sfcad_file, sfc_AD, Quiet=.TRUE. )
+  Error_Status = CRTM_Surface_ReadFile( sfck_File, sfc_k, Quiet=.TRUE. )
   IF ( Error_Status /= SUCCESS ) THEN
-    Message = 'Error reading Surface_AD save file'
+    Message = 'Error reading Surface_K save file'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
 
-  ! 9e. Compare the adjoints
-  ! ------------------------
+  ! 9e. Compare some Jacobians
+  ! --------------------------
   ! 9e.1 Atmosphere
-  ! IF ( ALL(CRTM_Atmosphere_Compare(Atmosphere_AD, atm_AD, n_SigFig=3)) ) THEN
-  !   Message = 'Atmosphere_AD Adjoints are the same!'
-  !   CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
-  ! ELSE
-  !   Message = 'Atmosphere_AD Adjoints are different!'
-  !   CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
-  !   STOP 1
-  !   ! Write the current Atmosphere_AD results to file
-  !   atmad_file = TRIM(Sensor_Id)//'.Atmosphere.bin'
-  !
-  !   Error_Status = CRTM_Atmosphere_WriteFile( atmad_file, atm_AD, Quiet=.TRUE. )
-  !   IF ( Error_Status /= SUCCESS ) THEN
-  !     Message = 'Error creating temporary Atmosphere_AD save file for failed comparison'
-  !     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
-  !     STOP 1
-  !   END IF
-  ! END IF
-  ! 9e.2 Surface
-  ! IF ( ALL(CRTM_Surface_Compare(Surface_AD, sfc_AD, n_SigFig=5)) ) THEN
-  IF ( ALL(CRTM_Surface_Compare(Surface_AD, sfc_AD)) ) THEN
-    Message = 'Surface_AD Adjoints are the same!'
+  IF ( ALL(CRTM_Atmosphere_Compare(Atmosphere_K, atm_k)) ) THEN
+    Message = 'Atmosphere_K Jacobians are the same!'
     CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
   ELSE
-    Message = 'Surface_AD Adjoints are different!'
+    Message = 'Atmosphere_K Jacobians are different!'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
-    STOP 1
-    ! Write the current Surface_AD results to file
-    sfcad_file = TRIM(Sensor_Id)//'.Surface.bin'
-    Error_Status = CRTM_Surface_WriteFile( sfcad_file, Surface_AD, Quiet=.TRUE. )
+    ! Write the current Atmosphere_K results to file
+    atmk_File = TRIM(PROGRAM_NAME)//'_'//TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)//'.Atmosphere.bin'
+    Error_Status = CRTM_Atmosphere_WriteFile( atmk_file, Atmosphere_K, Quiet=.TRUE. )
     IF ( Error_Status /= SUCCESS ) THEN
-      Message = 'Error creating temporary Surface_AD save file for failed comparison'
+      Message = 'Error creating temporary Atmosphere_K save file for failed comparison'
       CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
-      STOP 1
+    END IF
+  END IF
+  ! 9e.2 Surface
+  IF ( ALL(CRTM_Surface_Compare(Surface_K, sfc_k, n_SigFig=5)) ) THEN
+    Message = 'Surface_K Jacobians are the same!'
+    CALL Display_Message( PROGRAM_NAME, Message, INFORMATION )
+  ELSE
+    Message = 'Surface_K Jacobians are different!'
+    CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
+    ! Write the current Surface_K results to file
+    sfck_File = TRIM(PROGRAM_NAME)//'_'//TRIM(PROGRAM_NAME)//'_'//TRIM(Sensor_Id)//'.Surface.bin'
+    Error_Status = CRTM_Surface_WriteFile( sfck_file, Surface_K, Quiet=.TRUE. )
+    IF ( Error_Status /= SUCCESS ) THEN
+      Message = 'Error creating temporary Surface_K save file for failed comparison'
+      CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     END IF
   END IF
   ! ============================================================================
@@ -409,8 +399,6 @@ PROGRAM test_Aerosol_Bypass_Adjoint
   ! ============================================================================
   ! 8. **** DESTROY THE CRTM ****
   !
-  ! ============================================================================
-
   WRITE( *, '( /5x, "Destroying the CRTM..." )' )
   Error_Status = CRTM_Destroy( ChannelInfo )
   IF ( Error_Status /= SUCCESS ) THEN
@@ -418,23 +406,23 @@ PROGRAM test_Aerosol_Bypass_Adjoint
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP 1
   END IF
+  ! ============================================================================
+
 
   ! ============================================================================
   ! 10. **** CLEAN UP ****
   !
   ! 10a. Deallocate the structures
   ! ------------------------------
-  CALL CRTM_Atmosphere_Destroy(atm_AD)
-  CALL CRTM_Atmosphere_Destroy(Atmosphere_AD)
+  CALL CRTM_Atmosphere_Destroy(atm_K)
+  CALL CRTM_Atmosphere_Destroy(Atmosphere_K)
   CALL CRTM_Atmosphere_Destroy(Atm)
-
-  CALL CRTM_Surface_Destroy(sfc_AD)
-  CALL CRTM_Surface_Destroy(Surface_AD)
-  CALL CRTM_Surface_Destroy(Sfc)
 
   ! 10b. Deallocate the arrays
   ! --------------------------
-  DEALLOCATE(RTSolution, RTSolution_AD, &
+  DEALLOCATE(Emissivity, RTSolution, RTSolution_K, &
+             Surface_K, Atmosphere_K, &
+             sfc_K, atm_K, &
              STAT = Allocate_Status)
   ! ============================================================================
 
@@ -444,6 +432,6 @@ CONTAINS
 
   INCLUDE 'Load_Atm_Data.inc'
   INCLUDE 'Load_Sfc_Data.inc'
-  INCLUDE 'Load_Atm_Data_Bypass_Aerosol.inc'
+  
 
-END PROGRAM test_Aerosol_Bypass_Adjoint
+END PROGRAM test_User_Emissivity

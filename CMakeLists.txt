@@ -1,13 +1,35 @@
 cmake_minimum_required( VERSION 3.12 )
 
-project(crtm VERSION 3.1.0 LANGUAGES Fortran)
+project(crtm VERSION 3.1.1 LANGUAGES Fortran)
 
 option(OPENMP "Build crtm with OpenMP support" ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
-set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path" FORCE)
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path" )
 message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
+
+# Function to get the current git commit hash
+function(get_git_hash result)
+    execute_process(
+        COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(${result} ${GIT_HASH} PARENT_SCOPE)
+endfunction()
+
+# Get the git hash
+get_git_hash(PROJECT_HASH)
+
+# Define ANSI color code for green
+string(ASCII 27 ESCAPE)
+set(RESET "${ESCAPE}[0m")
+set(GREEN "${ESCAPE}[32m")
+
+# Output the project name, version, and hash in green text
+message(STATUS "${GREEN}[${PROJECT_NAME}] (${PROJECT_VERSION}) [${PROJECT_HASH}]${RESET}")
 
 ## Configuration options
 include(${PROJECT_NAME}_compiler_flags)
@@ -62,19 +84,22 @@ write_basic_package_version_file(
 )
 
 # Install the generated or configured files
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/crtm-config.cmake"
+install(FILES 
+              "${CMAKE_CURRENT_BINARY_DIR}/crtm-config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/crtm-config-version.cmake"
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 # Install the export set for use with the install-tree
 install(EXPORT ${PROJECT_NAME}-config
-        FILE "${PROJECT_NAME}-targets.cmake"
-        NAMESPACE ${PROJECT_NAME}::
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+	FILE "${PROJECT_NAME}-targets.cmake"
+	# Note: NAMESPACEs need downstream JEDI changes to link crtm::crtm instead of just crtm.
+	#NAMESPACE ${PROJECT_NAME}::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
+# For build-tree linkage
 export(EXPORT ${PROJECT_NAME}-config
-        FILE "${PROJECT_NAME}-targets.cmake"
-        NAMESPACE ${PROJECT_NAME}::)
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-targets.cmake"
+)
 
 add_subdirectory(test)
 include(CTest)

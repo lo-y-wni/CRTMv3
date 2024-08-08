@@ -4,7 +4,7 @@
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
 
 cmake_minimum_required (VERSION 3.12)
-project("CRTM_Tests" VERSION 3.1.0 LANGUAGES Fortran C)
+project("CRTM_Tests" VERSION 3.1.1 LANGUAGES Fortran C)
 
 enable_testing ()
 
@@ -58,21 +58,21 @@ endif()
 
 # If local path to testfiles is defined don't download 
 IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
-  set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR}/fix )
-  message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}")
+  set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR} )
+  message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}/fix")
   message("Using existing local fix directory instead of downloading.")
   set( CRTM_COEFFS_BRANCH "" )
 
 else() # Download CRTM coefficients
   set( CRTM_COEFFS_BRANCH_PREFIX "" )  #preserves the structure of the paths that have been used in jedi previously vs the local path above
-  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.0.1_01252024" ) #this version is the CRTM version, not the jedi / skylab version (again, following prior installations -- I'm not tied to this in any way)
+  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.0" ) 
   
   set(CRTM_COEFFS_PATH ${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION})
   file(MAKE_DIRECTORY ${CRTM_COEFFS_PATH})
   
   set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/")
   set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz) 
-  set(checksum "b37602ea463be55451de1e61ff80b2ba") # MD5SUM of fix_REL-3.1.0.1_01252024.tgz
+  set(checksum "3cd30437fb4b3ac7927ca871c9587f6e") # MD5SUM of fix_REL-3.1.1.0.tgz
   
   set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
   set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
@@ -117,6 +117,17 @@ list( APPEND Simple_Sensor_Ids
 )
 
 list( APPEND ScatteringSwitch_Sensor_Ids
+        atms_n21
+        cris-fsr_n21
+        v.abi_g18
+        atms_npp
+        cris399_npp
+        v.abi_gr
+        abi_g18
+        modis_aqua
+)
+
+list( APPEND User_Emissivity_Sensor_Ids
         atms_n21
         cris-fsr_n21
         v.abi_g18
@@ -206,6 +217,7 @@ list (APPEND common_tests
      ClearSky
      Aircraft
      ScatteringSwitch
+		 User_Emissivity
      SOI
      SSU
      VerticalCoordinates
@@ -464,7 +476,6 @@ AerosolCoeff/Little_Endian/AerosolCoeff.bin
 AerosolCoeff/netCDF/AerosolCoeff.nc4
 CloudCoeff/Little_Endian/CloudCoeff.bin
 CloudCoeff/netCDF/CloudCoeff.nc4
-CloudCoeff/netCDF/CloudCoeff_DDA_ARTS.nc4
 CloudCoeff/netCDF/CloudCoeff_DDA_Moradi_2022.nc4
 EmisCoeff/MW_Water/Little_Endian/FASTEM6.MWwater.EmisCoeff.bin
 EmisCoeff/IR_Ice/SEcategory/Little_Endian/NPOESS.IRice.EmisCoeff.bin

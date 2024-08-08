@@ -1,9 +1,9 @@
-#https://bin.ssec.wisc.edu/pub/s4/CRTM/fix_REL-3.1.0.1_01252024.tgz  (use this for jedi and stand-alone, some files have changed).
+#https://bin.ssec.wisc.edu/pub/s4/CRTM/fix_REL-3.1.1.0.tgz  (use this for jedi and stand-alone, some files have changed).
 
 # This script is used to manually download the tarball of binary and netcdf coefficient files.
 # The same files also download automatically during the cmake step, so you don't have to actually run this manually. 
 
-foldername="fix_REL-3.1.0.1_01252024"
+foldername="fix_REL-3.1.1.0"
 filename="${foldername}.tgz"
 echo "$filename"
 break
@@ -26,8 +26,8 @@ else
     #untar the file and move directory to fix
     tar -zxvf $filename
     mkdir fix
-    mv crtm/$foldername/* fix/.
-    rm -rf crtm/$foldername
+    mv $foldername/fix/* fix/.
+    rm -rf $foldername
   	echo "fix/ directory created from downloaded $filename."
 fi
 echo "Completed."
