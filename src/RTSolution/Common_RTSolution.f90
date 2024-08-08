@@ -1736,7 +1736,7 @@ CONTAINS
     ELSE
 
       IF( RTV%Scattering_RT ) THEN
-        User_Emissivity_AD = ZERO
+        User_Emissivity_AD = SUM(SfcOptics_AD%Emissivity(1:nZ,1))
         IF( RTV%Diffuse_Surface) THEN
           IF( RTV%mth_Azi == 0 ) THEN
         ! Assuming Lambertian surface isn't polarized!
