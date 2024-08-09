@@ -30,7 +30,6 @@ PROGRAM ODAS_NC2BIN
   ! Parameters
   ! ----------
   CHARACTER(*), PARAMETER :: PROGRAM_NAME = 'ODAS_NC2BIN'
-  CHARACTER(*), PARAMETER :: PROGRAM_RCS_ID = &
 
   ! ---------
   ! Variables

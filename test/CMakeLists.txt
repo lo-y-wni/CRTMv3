@@ -299,19 +299,27 @@ list (APPEND SCoeff_Utils
 	SpcCoeff_NC2BIN
 )
 foreach(testtype IN LISTS SCoeff_Utils)
-	add_executable(${testtype} mains/application/SpcCoeff/${testtype}.f90)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/SpcCoeff/${testtype}/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 
-#TauCoeff utilities
-list (APPEND TCoeff_Utils
+#TauCoeff ODAS utilities
+list (APPEND ODAS_Utils
 	ODAS_BIN2NC
 	ODAS_NC2BIN
+)
+foreach(testtype IN LISTS ODAS_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODAS/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
+#TauCoeff ODPS utilities
+list (APPEND ODPS_Utils
 	ODPS_BIN2NC
 	ODPS_NC2BIN
 )
-foreach(testtype IN LISTS TCoeff_Utils)
-	add_executable(${testtype} mains/application/TauCoeff/${testtype}.f90)
+foreach(testtype IN LISTS ODPS_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODPS/${testtype}/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 
@@ -322,7 +330,7 @@ list (APPEND CCoeff_Utils
 	CloudCoeff_Inspect
 )
 foreach(testtype IN LISTS CCoeff_Utils)
-	add_executable(${testtype} mains/application/CloudCoeff/${testtype}.f90)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/CloudCoeff/${testtype}/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 

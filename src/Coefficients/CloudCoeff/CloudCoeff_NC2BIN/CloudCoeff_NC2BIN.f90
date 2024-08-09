@@ -17,7 +17,7 @@ PROGRAM CloudCoeff_NC2BIN
   ! -----------------
   ! Module usage
   USE Message_Handler   , ONLY: SUCCESS, FAILURE, Program_Message, Display_Message
-  USE SignalFile_Utility, ONLY: Create_SignalFile
+!  USE SignalFile_Utility, ONLY: Create_SignalFile
   USE CloudCoeff_Define , ONLY: CloudCoeff_type
   USE CloudCoeff_IO     , ONLY: CloudCoeff_netCDF_to_Binary
   ! Disable implicit typing
@@ -68,13 +68,13 @@ PROGRAM CloudCoeff_NC2BIN
   END IF
   
   
-  ! Create a signal file indicating success
-  err_stat = Create_SignalFile( BIN_Filename )
-  IF ( err_stat /= SUCCESS ) THEN
-    CALL Display_Message( PROGRAM_NAME, &
-                          'Error creating signal file for '//TRIM(BIN_Filename), &
-                          FAILURE )
-  END IF
-
+!!$  ! Create a signal file indicating success
+!!$  err_stat = Create_SignalFile( BIN_Filename )
+!!$  IF ( err_stat /= SUCCESS ) THEN
+!!$    CALL Display_Message( PROGRAM_NAME, &
+!!$                          'Error creating signal file for '//TRIM(BIN_Filename), &
+!!$                          FAILURE )
+!!$  END IF
+!!$
 END PROGRAM CloudCoeff_NC2BIN
 

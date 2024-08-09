@@ -1,80 +1,76 @@
 !
-! CloudCoeff_NC2BIN
+! CloudCoeff_BIN2NC
 !
-! Program to convert a CRTM CloudCoeff data file
-! from netCDF to Binary format
+! Program to convert Binary format CloudCoeff files to the netCDF format.
 !
 !
 ! CREATION HISTORY:
-!       Written by: Paul van Delst, 27-Apr-2007
-!                   paul.vandelst@noaa.gov
+!       Written by:     Benjamin Johnson
+!                       benjamin.t.johnson@noaa.gov / bjohns@ucar.edu
+!       Updated:        Benjamin Johnson 8-9-2024 (bjohns@ucar.edu)
+!                       Converted from CloudCoeff_BIN2NC.f90
 !
 
-PROGRAM CloudCoeff_NC2BIN
+PROGRAM CloudCoeff_BIN2NC
 
-  ! -----------------
-  ! Environment setup
-  ! -----------------
+  ! ------------------
+  ! Environment set up
+  ! ------------------
   ! Module usage
-  USE Message_Handler   , ONLY: SUCCESS, FAILURE, Program_Message, Display_Message
-  USE SignalFile_Utility, ONLY: Create_SignalFile
-  USE CloudCoeff_Define , ONLY: CloudCoeff_type
-  USE CloudCoeff_IO     , ONLY: CloudCoeff_netCDF_to_Binary
+  USE CRTM_Module
+  USE CloudCoeff_Define   , ONLY: CloudCoeff_type
+  USE CloudCoeff_IO       , ONLY: CloudCoeff_Binary_to_netCDF
+  USE Endian_Utility    , ONLY: Big_Endian
   ! Disable implicit typing
   IMPLICIT NONE
 
   ! ----------
   ! Parameters
   ! ----------
-  CHARACTER(*), PARAMETER :: PROGRAM_NAME = 'CloudCoeff_NC2BIN'
-  CHARACTER(*), PARAMETER :: PROGRAM_VERSION_ID = &
-  '$Id: CloudCoeff_NC2BIN.f90 7080 2010-03-15 17:19:38Z david.groff@noaa.gov $'
-  
+  CHARACTER(*), PARAMETER :: PROGRAM_NAME = 'CloudCoeff_BIN2NC'
+
   ! ---------
   ! Variables
   ! ---------
   INTEGER :: err_stat
-  CHARACTER(256) :: NC_Filename, BIN_Filename
+  CHARACTER(256) :: msg
+  CHARACTER(256) :: BIN_filename
+  CHARACTER(256) :: NC_filename
+  CHARACTER(256) :: answer
+  CHARACTER(256) :: version_str
   
   ! Program header
+  CALL CRTM_Version(version_str)
   CALL Program_Message( PROGRAM_NAME, &
-                        'Program to convert a CRTM CloudCoeff data file '//&
-                        'from netCDF to Binary format.', &
-                        '$Revision: 7080 $')
-  
+                        'Program to convert a CRTM CloudCoeff data file from Binary to netCDF format.', &
+                        'CRTM Version: '//TRIM(version_str) )
+
   ! Get the filenames
-  WRITE(*,FMT='(/5x,"Enter the INPUT netCDF CloudCoeff filename : ")', ADVANCE='NO')
-  READ(*,'(a)') NC_Filename
-  NC_Filename = ADJUSTL(NC_Filename)
-  WRITE(*,FMT='(/5x,"Enter the OUTPUT Binary CloudCoeff filename: ")', ADVANCE='NO')
-  READ(*,'(a)') BIN_Filename
-  BIN_Filename = ADJUSTL(BIN_Filename)
+  IF ( Big_Endian() ) THEN
+     WRITE(*,FMT='(/5x,"Enter the INPUT Binary [Big Endian] CloudCoeff filename : ")', ADVANCE='NO')
+  ELSE
+     WRITE(*,FMT='(/5x,"Enter the INPUT Binary [Little Endian] CloudCoeff filename : ")', ADVANCE='NO')
+  END IF
+   READ(*,'(a)') BIN_filename
+  BIN_filename = ADJUSTL(BIN_filename)
+  WRITE(*,FMT='(/5x,"Enter the OUTPUT netCDF CloudCoeff filename: ")', ADVANCE='NO')
+  READ(*,'(a)') NC_filename
+  NC_filename = ADJUSTL(NC_filename)
+
   ! ...Sanity check that they're not the same
-  IF ( BIN_Filename == NC_Filename ) THEN
-    CALL Display_Message( PROGRAM_NAME, &
-                          'CloudCoeff netCDF and Binary filenames are the same!', &
-                          FAILURE )
-    STOP
-  END IF
-  
-  
+  IF ( bin_filename == nc_filename ) THEN
+    msg = 'CloudCoeff netCDF and Binary filenames are the same!'
+    CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
+  END IF  
+
   ! Perform the conversion
-  err_stat = CloudCoeff_netCDF_to_Binary( NC_Filename, BIN_Filename )
+  err_stat = CloudCoeff_Binary_to_netCDF( BIN_filename, NC_filename, Quiet=.FALSE.)
   IF ( err_stat /= SUCCESS ) THEN
-    CALL Display_Message( PROGRAM_NAME, &
-                          'CloudCoeff netCDF -> Binary conversion failed!', &
-                          FAILURE )
-    STOP
+    msg = 'CloudCoeff Binary -> netCDF conversion failed!'
+    CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
+  ELSE
+    msg = 'CloudCoeff Binary -> netCDF conversion successful!'
+    CALL Display_Message( PROGRAM_NAME, msg, err_stat )
   END IF
   
-  
-  ! Create a signal file indicating success
-  err_stat = Create_SignalFile( BIN_Filename )
-  IF ( err_stat /= SUCCESS ) THEN
-    CALL Display_Message( PROGRAM_NAME, &
-                          'Error creating signal file for '//TRIM(BIN_Filename), &
-                          FAILURE )
-  END IF
-
-END PROGRAM CloudCoeff_NC2BIN
-
+END PROGRAM CloudCoeff_BIN2NC
