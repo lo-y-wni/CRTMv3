@@ -291,35 +291,39 @@ add_test(NAME test_Unit_Aerosol_Bypass_k_matrix
          COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_k_matrix>)
 set_tests_properties(test_Unit_Aerosol_Bypass_k_matrix  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
-list (APPEND SCoeff_Tests
+#SpcCoeff utilities
+list (APPEND SCoeff_Utils
 	SpcCoeff_Edit
 	SpcCoeff_Inspect
 	SpcCoeff_BIN2NC
 	SpcCoeff_NC2BIN
 )
-
-foreach(testtype IN LISTS SCoeff_Tests)
+foreach(testtype IN LISTS SCoeff_Utils)
 	add_executable(${testtype} mains/application/SpcCoeff/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
-	
-	add_test(NAME run_${testtype} 
-		COMMAND $<TARGET_FILE:${testtype}> "testinput/atms_n21.SpcCoeff.bin")
-	set_tests_properties(run_${testtype} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}" DISABLED ON)
 endforeach()
 
-list (APPEND TCoeff_Tests
+#TauCoeff utilities
+list (APPEND TCoeff_Utils
+	ODAS_BIN2NC
 	ODAS_NC2BIN
 	ODPS_BIN2NC
 	ODPS_NC2BIN
 )
-
-foreach(testtype IN LISTS TCoeff_Tests)
+foreach(testtype IN LISTS TCoeff_Utils)
 	add_executable(${testtype} mains/application/TauCoeff/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
-	
-	add_test(NAME run_${testtype} 
-		COMMAND $<TARGET_FILE:${testtype}> "testinput/atms_n21.TauCoeff.bin")
-	set_tests_properties(run_${testtype} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}" DISABLED ON)
+endforeach()
+
+#CloudCoeff utilities 
+list (APPEND CCoeff_Utils
+  CloudCoeff_NC2BIN
+	CloudCoeff_BIN2NC
+	CloudCoeff_Inspect
+)
+foreach(testtype IN LISTS CCoeff_Utils)
+	add_executable(${testtype} mains/application/CloudCoeff/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 
 
