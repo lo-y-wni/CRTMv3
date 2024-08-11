@@ -291,11 +291,49 @@ add_test(NAME test_Unit_Aerosol_Bypass_k_matrix
          COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_k_matrix>)
 set_tests_properties(test_Unit_Aerosol_Bypass_k_matrix  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
-add_executable(SpcCoeff_Inspect mains/application/SpcCoeff_Inspect.f90)
-target_link_libraries(SpcCoeff_Inspect PRIVATE crtm)
-add_test(NAME run_SpcCoeff_Inspect
-         COMMAND $<TARGET_FILE:SpcCoeff_Inspect> "testinput/atms_n21.SpcCoeff.bin")
-set_tests_properties(run_SpcCoeff_Inspect PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+#SpcCoeff utilities
+list (APPEND SCoeff_Utils
+	SpcCoeff_Edit
+	SpcCoeff_Inspect
+	SpcCoeff_BIN2NC
+	SpcCoeff_NC2BIN
+)
+foreach(testtype IN LISTS SCoeff_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/SpcCoeff/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
+#TauCoeff ODAS utilities
+list (APPEND ODAS_Utils
+	ODAS_BIN2NC
+	ODAS_NC2BIN
+)
+foreach(testtype IN LISTS ODAS_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODAS/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
+#TauCoeff ODPS utilities
+list (APPEND ODPS_Utils
+	ODPS_BIN2NC
+	ODPS_NC2BIN
+)
+foreach(testtype IN LISTS ODPS_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODPS/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
+#CloudCoeff utilities 
+list (APPEND CCoeff_Utils
+  CloudCoeff_NC2BIN
+	CloudCoeff_BIN2NC
+	CloudCoeff_Inspect
+)
+foreach(testtype IN LISTS CCoeff_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/CloudCoeff/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
 
 
 #---------------------------------------------------------------------------------

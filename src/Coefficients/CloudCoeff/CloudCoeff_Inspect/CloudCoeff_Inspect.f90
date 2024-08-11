@@ -28,7 +28,7 @@ PROGRAM CloudCoeff_Inspect
   ! Parameters
   ! ----------
   CHARACTER(*), PARAMETER :: PROGRAM_NAME = 'CloudCoeff_Inspect'
-  CHARACTER(*), PARAMETER :: PROGRAM_RCS_ID = &
+  CHARACTER(*), PARAMETER :: PROGRAM_RCS_ID = ''
 
 
   ! -----------------------

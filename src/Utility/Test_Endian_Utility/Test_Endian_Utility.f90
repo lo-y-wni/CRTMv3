@@ -67,8 +67,8 @@ PROGRAM Test_Endian_Utility
   ! ----------
 
   CHARACTER( * ), PARAMETER :: PROGRAM_NAME   = 'Test_Endian_Utility'
-  CHARACTER( * ), PARAMETER :: PROGRAM_RCS_ID = &
-  CHARACTER( * ), PARAMETER :: PROGRAM_HEADER = &
+  CHARACTER( * ), PARAMETER :: PROGRAM_RCS_ID = ''
+  CHARACTER( * ), PARAMETER :: PROGRAM_HEADER = ''
   '**********************************************************'
 
   ! -- Dimensions

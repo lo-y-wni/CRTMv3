@@ -33,7 +33,7 @@ PROGRAM ODPS_NC2BIN
   ! Parameters
   ! ----------
   CHARACTER(*), PARAMETER :: PROGRAM_NAME = 'ODPS_NC2BIN'
-  CHARACTER(*), PARAMETER :: PROGRAM_RCS_ID = &
+
 
   ! ---------
   ! Variables
