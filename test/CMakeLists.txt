@@ -65,14 +65,14 @@ IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
 
 else() # Download CRTM coefficients
   set( CRTM_COEFFS_BRANCH_PREFIX "" )  #preserves the structure of the paths that have been used in jedi previously vs the local path above
-  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.0" ) 
+  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.1" ) 
   
   set(CRTM_COEFFS_PATH ${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION})
   file(MAKE_DIRECTORY ${CRTM_COEFFS_PATH})
   
   set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/")
   set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz) 
-  set(checksum "3cd30437fb4b3ac7927ca871c9587f6e") # MD5SUM of fix_REL-3.1.1.0.tgz
+  set(checksum "1ee0d39f08a2548402cf2ad8d26f2f5a") # MD5SUM of fix_REL-3.1.1.1.tgz
   
   set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
   set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
@@ -117,6 +117,17 @@ list( APPEND Simple_Sensor_Ids
 )
 
 list( APPEND ScatteringSwitch_Sensor_Ids
+        atms_n21
+        cris-fsr_n21
+        v.abi_g18
+        atms_npp
+        cris399_npp
+        v.abi_gr
+        abi_g18
+        modis_aqua
+)
+
+list( APPEND User_Emissivity_Sensor_Ids
         atms_n21
         cris-fsr_n21
         v.abi_g18
@@ -206,6 +217,7 @@ list (APPEND common_tests
      ClearSky
      Aircraft
      ScatteringSwitch
+		 User_Emissivity
      SOI
      SSU
      VerticalCoordinates
@@ -279,11 +291,49 @@ add_test(NAME test_Unit_Aerosol_Bypass_k_matrix
          COMMAND $<TARGET_FILE:Unit_Aerosol_Bypass_k_matrix>)
 set_tests_properties(test_Unit_Aerosol_Bypass_k_matrix  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
-add_executable(SpcCoeff_Inspect mains/application/SpcCoeff_Inspect.f90)
-target_link_libraries(SpcCoeff_Inspect PRIVATE crtm)
-add_test(NAME run_SpcCoeff_Inspect
-         COMMAND $<TARGET_FILE:SpcCoeff_Inspect> "testinput/atms_n21.SpcCoeff.bin")
-set_tests_properties(run_SpcCoeff_Inspect PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+#SpcCoeff utilities
+list (APPEND SCoeff_Utils
+	SpcCoeff_Edit
+	SpcCoeff_Inspect
+	SpcCoeff_BIN2NC
+	SpcCoeff_NC2BIN
+)
+foreach(testtype IN LISTS SCoeff_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/SpcCoeff/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
+#TauCoeff ODAS utilities
+list (APPEND ODAS_Utils
+	ODAS_BIN2NC
+	ODAS_NC2BIN
+)
+foreach(testtype IN LISTS ODAS_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODAS/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
+#TauCoeff ODPS utilities
+list (APPEND ODPS_Utils
+	ODPS_BIN2NC
+	ODPS_NC2BIN
+)
+foreach(testtype IN LISTS ODPS_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODPS/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
+#CloudCoeff utilities 
+list (APPEND CCoeff_Utils
+  CloudCoeff_NC2BIN
+	CloudCoeff_BIN2NC
+	CloudCoeff_Inspect
+)
+foreach(testtype IN LISTS CCoeff_Utils)
+	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/CloudCoeff/${testtype}/${testtype}.f90)
+	target_link_libraries(${testtype} PRIVATE crtm)
+endforeach()
+
 
 
 #---------------------------------------------------------------------------------

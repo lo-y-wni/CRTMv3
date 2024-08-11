@@ -1,16 +1,16 @@
 !
-! ODPS_BIN2NC
+! ODAS_BIN2NC
 !
-! Program to convert netCDF format ODPS files to the CRTM Binary
+! Program to convert netCDF format ODAS files to the CRTM Binary
 ! format.
 !
 !
 ! CREATION HISTORY:
-!       Written by:     Yong Chen 27-Feb-2009
-!                       Yong.Chen@noaa.gov
+!       Written by:     Benjamin Johnson (benjamin.t.johnson@noaa.gov) August 9, 2024
+!                       Based on ODPS_BIN2NC.f90
 !
 
-PROGRAM ODPS_BIN2NC
+PROGRAM ODAS_BIN2NC
 
   ! ------------------
   ! Environment set up
@@ -19,17 +19,17 @@ PROGRAM ODPS_BIN2NC
   USE File_Utility   , ONLY: File_Exists
   USE Message_Handler, ONLY: SUCCESS, FAILURE, WARNING, INFORMATION, &
                              Program_Message, Display_Message
-  USE ODPS_Define    , ONLY: ODPS_type, &
-                             Destroy_ODPS, Equal_ODPS
-  USE ODPS_Binary_IO , ONLY: Read_ODPS_Binary, Write_ODPS_Binary
-  USE ODPS_netCDF_IO , ONLY: Read_ODPS_netCDF, Write_ODPS_netCDF
+  USE ODAS_Define    , ONLY: ODAS_type, &
+                             Destroy_ODAS, Equal_ODAS
+  USE ODAS_Binary_IO , ONLY: Read_ODAS_Binary, Write_ODAS_Binary
+  USE ODAS_netCDF_IO , ONLY: Read_ODAS_netCDF, Write_ODAS_netCDF
   ! Disable implicit typing
   IMPLICIT NONE
 
   ! ----------
   ! Parameters
   ! ----------
-  CHARACTER(*), PARAMETER :: PROGRAM_NAME = 'ODPS_BIN2NC'
+  CHARACTER(*), PARAMETER :: PROGRAM_NAME = 'ODAS_BIN2NC'
 
   ! ---------
   ! Variables
@@ -37,18 +37,18 @@ PROGRAM ODPS_BIN2NC
   INTEGER :: Error_Status
   CHARACTER(256) :: NC_Filename
   CHARACTER(256) :: BIN_Filename
-  TYPE(ODPS_type) :: ODPS
-  TYPE(ODPS_type) :: ODPS_Test
+  TYPE(ODAS_type) :: ODAS
+  TYPE(ODAS_type) :: ODAS_Test
 
 
   ! Output prgram header
   CALL Program_Message( PROGRAM_NAME, &
-                        'Program to convert netCDF format ODPS files to '//&
+                        'Program to convert netCDF format ODAS files to '//&
                         'their CRTM Binary format.', &
                         '$Revision$' )
 
   ! Get the input and output filenames
-  WRITE( *, FMT     = '( /5x, "Enter the INPUT Binary ODPS file: " )', &
+  WRITE( *, FMT     = '( /5x, "Enter the INPUT Binary ODAS file: " )', &
             ADVANCE = 'NO' )
   READ( *, '( a )' ) BIN_Filename
   BIN_Filename = ADJUSTL( BIN_FileNAME )
@@ -59,7 +59,7 @@ PROGRAM ODPS_BIN2NC
     STOP
   END IF
 
-  WRITE( *, FMT     = '( /5x, "Enter the OUTPUT netCDF ODPS file: " )', &
+  WRITE( *, FMT     = '( /5x, "Enter the OUTPUT netCDF ODAS file: " )', &
             ADVANCE = 'NO' )
   READ( *, '( a )' ) NC_Filename
   NC_Filename = ADJUSTL( NC_Filename )
@@ -73,22 +73,22 @@ PROGRAM ODPS_BIN2NC
   END IF
 
   ! Read the input binary file
-  WRITE( *, '( /5x, "Reading Binary ODPS data ..." )' )
-  Error_Status = Read_ODPS_Binary( BIN_Filename, ODPS )
+  WRITE( *, '( /5x, "Reading Binary ODAS data ..." )' )
+  Error_Status = Read_ODAS_Binary( BIN_Filename, ODAS )
   IF ( Error_Status /= SUCCESS ) THEN
     CALL Display_Message( PROGRAM_NAME, &
-                          'Error reading Binary ODPS file '//&
+                          'Error reading Binary ODAS file '//&
                           TRIM( BIN_Filename ), &
                           Error_Status )
     STOP
   END IF
 
   ! Write the netCDF file
-  WRITE( *, '( /5x, "Writeing netCDF ODPS data ..." )' )
-  Error_Status = Write_ODPS_netCDF( NC_Filename, ODPS )
+  WRITE( *, '( /5x, "Writeing netCDF ODAS data ..." )' )
+  Error_Status = Write_ODAS_netCDF( NC_Filename, ODAS )
   IF ( Error_Status /= SUCCESS ) THEN
     CALL Display_Message( PROGRAM_NAME, &
-                          'Error writing netCDF ODPS file '//&
+                          'Error writing netCDF ODAS file '//&
                           TRIM( NC_Filename ), &
                           Error_Status )
     STOP
@@ -96,43 +96,43 @@ PROGRAM ODPS_BIN2NC
 
 
   ! Test read the netCDF data file
-  WRITE( *, '( /5x, "Test reading the netCDF ODPS data file ..." )' )
-  Error_Status = Read_ODPS_netCDF( NC_Filename, ODPS_Test )
+  WRITE( *, '( /5x, "Test reading the netCDF ODAS data file ..." )' )
+  Error_Status = Read_ODAS_netCDF( NC_Filename, ODAS_Test )
   IF ( Error_Status /= SUCCESS ) THEN
     CALL Display_Message( PROGRAM_NAME, &
-                          'Error reading netCDF ODPS file '//&
+                          'Error reading netCDF ODAS file '//&
                           TRIM( NC_Filename ), &
                           Error_Status )
     STOP
   END IF
 
   ! Compare the two structures
-  WRITE( *, '( /5x, "Comparing the Binary and netCDF ODPS structures ..." )' )
-  Error_Status = Equal_ODPS( ODPS_Test, ODPS, Check_All=1  )
+  WRITE( *, '( /5x, "Comparing the Binary and netCDF ODAS structures ..." )' )
+  Error_Status = Equal_ODAS( ODAS_Test, ODAS, Check_All=1  )
   IF ( Error_Status /= SUCCESS ) THEN
     CALL Display_Message( PROGRAM_NAME, &
                           'Differences found in Binary and netCDF'//&
-                          'file ODPS structure comparison.', &
+                          'file ODAS structure comparison.', &
                           Error_Status )
   ELSE
     CALL Display_Message( PROGRAM_NAME, &
-                          'Binary and netCDF file ODPS structures are equal.', &
+                          'Binary and netCDF file ODAS structures are equal.', &
                           INFORMATION )
   END IF
 
   ! Destroy the structures
-  Error_Status = Destroy_ODPS( ODPS )
+  Error_Status = Destroy_ODAS( ODAS )
   IF ( Error_Status /= SUCCESS ) THEN
     CALL Display_Message( PROGRAM_NAME, &
-                          'Error destroying ODPS structure.', &
+                          'Error destroying ODAS structure.', &
                           WARNING )
   END IF
 
-  Error_Status = Destroy_ODPS( ODPS_Test )
+  Error_Status = Destroy_ODAS( ODAS_Test )
   IF ( Error_Status /= SUCCESS ) THEN
     CALL Display_Message( PROGRAM_NAME, &
-                          'Error destroying ODPS_Test structure.', &
+                          'Error destroying ODAS_Test structure.', &
                           WARNING )
   END IF
 
-END PROGRAM ODPS_BIN2NC
+END PROGRAM ODAS_BIN2NC
