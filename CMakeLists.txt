@@ -127,4 +127,4 @@ else()
 		message(STATUS "No build type specified, defaulting to Release.")
 endif()
 
-set(crtm_LIBRARIES crtm)
+#set(crtm_LIBRARIES crtm)
