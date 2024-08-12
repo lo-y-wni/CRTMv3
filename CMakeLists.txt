@@ -101,6 +101,8 @@ export(EXPORT ${PROJECT_NAME}-config
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-targets.cmake"
 )
 
+set(CRTM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_subdirectory(test)
 include(CTest)
 
@@ -126,5 +128,8 @@ else()
     # Commands for other build types
 		message(STATUS "No build type specified, defaulting to Release.")
 endif()
+
+#export the CRTM_SOURCE_DIR for use in the test framework (ensures compatibility with jedi-bundle)
+
 
 #set(crtm_LIBRARIES crtm)
