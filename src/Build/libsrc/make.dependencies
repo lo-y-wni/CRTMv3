@@ -71,7 +71,7 @@ CRTM_Predictor_Define.o : CRTM_Predictor_Define.f90 ODZeeman_AtmAbsorption.o ODP
 CRTM_Predictor.o : CRTM_Predictor.f90 ODZeeman_AtmAbsorption.o ODPS_Predictor.o ODPS_Predictor_Define.o ODAS_Predictor.o ODAS_Predictor_Define.o CRTM_Predictor_Define.o CRTM_AtmOptics_Define.o CRTM_GeometryInfo_Define.o CRTM_AncillaryInput_Define.o CRTM_TauCoeff.o CRTM_Atmosphere_Define.o CRTM_Parameters.o Message_Handler.o Type_Kinds.o 
 CRTM_RTSolution_Define.o : CRTM_RTSolution_Define.f90 CRTM_Parameters.o SensorInfo_Parameters.o Binary_File_Utility.o File_Utility.o Compare_Float_Numbers.o Message_Handler.o Type_Kinds.o 
 CRTM_RTSolution.o : CRTM_RTSolution.f90 Emission_Module.o ADA_Module.o SOI_Module.o RTV_Define.o CRTM_Utility.o CRTM_RTSolution_Define.o CRTM_SfcOptics_Define.o CRTM_AtmOptics_Define.o CRTM_GeometryInfo_Define.o CRTM_Surface_Define.o CRTM_Atmosphere_Define.o CRTM_SpcCoeff.o Common_RTSolution.o CRTM_Parameters.o Message_Handler.o Type_Kinds.o
-CRTM_Active_Sensor.o : CRTM_Active_Sensor.f90 Type_Kinds.o CRTM_Parameters.o CRTM_SpcCoeff.o CRTM_AtmOptics_Define.o CRTM_RTSolution_Define.o Spectral_Units_Conversion.o Fundamental_Constants.o
+CRTM_Active_Sensor.o : CRTM_Active_Sensor.f90 Type_Kinds.o CRTM_Parameters.o CRTM_SpcCoeff.o CRTM_AtmOptics_Define.o CRTM_RTSolution_Define.o Spectral_Units_Conversion.o Fundamental_Constants.o ODPS_CoordinateMapping.o
 CRTM_SEcategory.o : CRTM_SEcategory.f90 SEcategory_Define.o CRTM_Interpolation.o CRTM_Parameters.o Message_Handler.o Type_Kinds.o 
 CRTM_SensorData_Define.o : CRTM_SensorData_Define.f90 CRTM_Parameters.o Binary_File_Utility.o File_Utility.o Compare_Float_Numbers.o Message_Handler.o Type_Kinds.o 
 CRTM_SensorInfo.o : CRTM_SensorInfo.f90 CRTM_Parameters.o Message_Handler.o 
