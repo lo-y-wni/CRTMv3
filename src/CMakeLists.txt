@@ -211,11 +211,21 @@ list( APPEND crtm_src_files
 			Zeeman/Zeeman_Utility.f90
 )
 
-add_library(${PROJECT_NAME} STATIC ${${PROJECT_NAME}_src_files})
+if(((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")) AND CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+  SET_SOURCE_FILES_PROPERTIES(RTSolution/ADA/ADA_Module.f90 APPEND_STRING PROPERTY COMPILE_FLAGS " -check none -check bounds,pointers,uninit")
+endif()
+
+
+add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_src_files})
+add_library(${PROJECT_NAME}_static STATIC ${${PROJECT_NAME}_src_files})
 
 # Dependencies
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_Fortran)
 target_link_libraries(${PROJECT_NAME} PUBLIC NetCDF::NetCDF_Fortran)
+
+# Dependencies
+target_link_libraries(${PROJECT_NAME}_static PUBLIC OpenMP::OpenMP_Fortran)
+target_link_libraries(${PROJECT_NAME}_static PUBLIC NetCDF::NetCDF_Fortran)
 
 # Fortran module output directory for build and install interfaces
 set(MODULE_DIR module/${PROJECT_NAME}/${CMAKE_Fortran_COMPILER_ID}/${CMAKE_Fortran_COMPILER_VERSION})
@@ -224,3 +234,4 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/${MODULE_DIR}/ DESTINATION ${MODULE_DIR})
 target_include_directories(${PROJECT_NAME} INTERFACE
                                 $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${MODULE_DIR}>
                                 $<INSTALL_INTERFACE:${MODULE_DIR}>)
+
