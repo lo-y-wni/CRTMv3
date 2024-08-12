@@ -216,16 +216,16 @@ if(((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "RelWithDe
 endif()
 
 
-add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_src_files})
-add_library(${PROJECT_NAME}_static STATIC ${${PROJECT_NAME}_src_files})
+add_library(${PROJECT_NAME}_shared SHARED ${${PROJECT_NAME}_src_files})
+add_library(${PROJECT_NAME} STATIC ${${PROJECT_NAME}_src_files})
 
 # Dependencies
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_Fortran)
 target_link_libraries(${PROJECT_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
 # Dependencies
-target_link_libraries(${PROJECT_NAME}_static PUBLIC OpenMP::OpenMP_Fortran)
-target_link_libraries(${PROJECT_NAME}_static PUBLIC NetCDF::NetCDF_Fortran)
+target_link_libraries(${PROJECT_NAME}_shared PUBLIC OpenMP::OpenMP_Fortran)
+target_link_libraries(${PROJECT_NAME}_shared PUBLIC NetCDF::NetCDF_Fortran)
 
 # Fortran module output directory for build and install interfaces
 set(MODULE_DIR module/${PROJECT_NAME}/${CMAKE_Fortran_COMPILER_ID}/${CMAKE_Fortran_COMPILER_VERSION})
