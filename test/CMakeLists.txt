@@ -178,11 +178,11 @@ list( APPEND ClearSky_Sensor_Ids
 
 # Create list of sensor ids for testing
 list( APPEND AOD_Sensor_Ids
-  cris-fsr_n21
-  v.abi_g18
+        cris-fsr_n21
+        v.abi_g18
         cris399_npp
         v.abi_gr
-  abi_g18
+        abi_g18
         airs_aqua
 )
 
@@ -205,6 +205,18 @@ list( APPEND Aircraft_Sensor_Ids
       crisB1_npp
 )
 
+list( APPEND Downwelling_Radiance_Sensor_Ids
+        atms_n21
+        cris-fsr_n21
+        v.abi_g18
+        atms_npp
+        cris399_npp
+        v.abi_gr
+        abi_g18
+        modis_aqua
+)
+
+
 list( APPEND OMPoverChannels_Sensor_Ids
         atms_n21
 )
@@ -216,8 +228,9 @@ list (APPEND common_tests
      ChannelSubset
      ClearSky
      Aircraft
+     Downwelling_Radiance
      ScatteringSwitch
-		 User_Emissivity
+     User_Emissivity
      SOI
      SSU
      VerticalCoordinates
@@ -405,6 +418,10 @@ foreach(regtype IN LISTS regression_types)
     string(COMPARE EQUAL ${testtype} "Aircraft" istesttype)
     if (isregtype AND istesttype)
        continue() #skip Aircraft type for k_Matrix
+    endif()
+    string(COMPARE EQUAL ${testtype} "Downwelling_Radiance" istesttype)
+    if (isregtype AND istesttype)
+       continue() #skip Downwelling_Radiance type for k_Matrix
     endif()
 
     add_executable(test_${regtype}_test_${testtype} mains/regression/${regtype}/test_${testtype}/test_${testtype}.f90)
