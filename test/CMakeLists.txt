@@ -260,6 +260,11 @@ add_test(NAME test_check_crtm_random
          COMMAND test_check_crtm_random)
 set_tests_properties(test_check_crtm_random PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
+add_executable(test_CRTM_WRF_Chem mains/application/CRTM_WRF_Chem.F90)
+target_link_libraries(test_CRTM_WRF_Chem PRIVATE crtm)
+add_test(NAME test_CRTM_WRF_Chem
+         COMMAND test_CRTM_WRF_Chem)
+set_tests_properties(test_CRTM_WRF_Chem PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
 add_executable(Unit_TL_TEST mains/unit/Unit_Test/test_TL.f90)
 target_link_libraries(Unit_TL_TEST PRIVATE crtm)
@@ -486,6 +491,7 @@ set_tests_properties(test_TL_convergence_active_sensor PROPERTIES ENVIRONMENT OM
 list( APPEND crtm_test_input
 AerosolCoeff/Little_Endian/AerosolCoeff.bin
 AerosolCoeff/netCDF/AerosolCoeff.nc4
+AerosolCoeff/Little_Endian/AerosolCoeff.GOCART-GEOS5.bin
 CloudCoeff/Little_Endian/CloudCoeff.bin
 CloudCoeff/netCDF/CloudCoeff.nc4
 CloudCoeff/netCDF/CloudCoeff_DDA_Moradi_2022.nc4
@@ -594,6 +600,8 @@ SpcCoeff/Little_Endian/ssu_n08.SpcCoeff.bin
 SpcCoeff/Little_Endian/ssu_n09.SpcCoeff.bin
 SpcCoeff/Little_Endian/ssu_n11.SpcCoeff.bin
 SpcCoeff/Little_Endian/ssu_n14.SpcCoeff.bin
+SpcCoeff/Little_Endian/v.modis_aqua.SpcCoeff.bin
+TauCoeff/ODAS/Little_Endian/v.modis_aqua.TauCoeff.bin
 )
 
 # Symlink all CRTM files
