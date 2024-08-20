@@ -1714,7 +1714,44 @@ CONTAINS
     ! Populate the SfcOptics_AD structure based
     ! on FORWARD model SfcOptics Compute_Switch
     ! -----------------------------------------
-    IF ( SfcOptics%Compute ) THEN
+    IF (.NOT.  SfcOptics%Compute ) THEN
+
+      IF( RTV%Scattering_RT ) THEN
+         User_Emissivity_AD = SUM(SfcOptics_AD%Emissivity(1:nZ,1))
+        
+         IF( RTV%Diffuse_Surface) THEN !! Scattering_RT ATM with diffusive surface
+            IF( RTV%mth_Azi == 0 ) THEN
+               ! Assuming Lambertian surface isn't polarized!
+               DO i = SfcOptics%n_Angles, 1, -1
+                  User_Emissivity_AD = User_Emissivity_AD - &
+                  (SUM(SfcOptics_AD%Reflectivity(1:SfcOptics%n_Angles,1,i,1))*SfcOptics%Weight(i))
+               END DO
+            ELSE
+               SfcOptics_AD%Reflectivity(1:SfcOptics%n_Angles, 1, 1:SfcOptics%n_Angles, 1) = ZERO
+               SfcOptics_AD%Direct_Reflectivity(1:SfcOptics%n_Angles,1) = ZERO
+               SfcOptics_AD%Emissivity(1:SfcOptics%n_Angles,1) = ZERO
+            END IF
+
+         ELSE ! Scattering_RT ATM with Specular surface??
+            DO i = nZ, 1, -1
+               User_Emissivity_AD = User_Emissivity_AD - SfcOptics_AD%Reflectivity(i,1,i,1)
+            END DO
+         END IF
+         !      Direct_Reflectivity_AD = SUM(SfcOptics_AD%Direct_Reflectivity(1:nZ,1))
+         !      SfcOptics_AD%Direct_Reflectivity(1,1) = SfcOptics_AD%Direct_Reflectivity(1,1) +
+         !                                              (Direct_Reflectivity_AD/PI)
+         RTSolution_AD%Surface_Emissivity = User_Emissivity_AD
+      ELSE
+        !! need to check !!
+        ! non-Scattering_RT ATM with Specular surface?
+        RTSolution_AD%Surface_Emissivity = SfcOptics_AD%Emissivity(SfcOptics_AD%Index_Sat_Ang,1) - &
+                                         SfcOptics_AD%Reflectivity(1,1,1,1)
+      END IF
+
+    ELSE
+      ! Physical model
+      RTSolution_AD%Surface_Emissivity = SfcOptics_AD%Emissivity(SfcOptics_AD%Index_Sat_Ang,1) 
+      RTSolution_AD%Surface_Reflectivity = SfcOptics_AD%Reflectivity( SfcOptics%Index_Sat_Ang, 1, SfcOptics%Index_Sat_Ang, 1 )
       Error_Status = CRTM_Compute_SfcOptics_AD( &
                        Surface     , & ! Input
                        SfcOptics   , & ! Input
@@ -1733,37 +1770,6 @@ CONTAINS
         RETURN
       END IF
 
-    ELSE
-
-      IF( RTV%Scattering_RT ) THEN
-        User_Emissivity_AD = SUM(SfcOptics_AD%Emissivity(1:nZ,1))
-        IF( RTV%Diffuse_Surface) THEN
-          IF( RTV%mth_Azi == 0 ) THEN
-        ! Assuming Lambertian surface isn't polarized!
-          DO i = SfcOptics%n_Angles, 1, -1
-            User_Emissivity_AD = User_Emissivity_AD - &
-            (SUM(SfcOptics_AD%Reflectivity(1:SfcOptics%n_Angles,1,i,1))*SfcOptics%Weight(i))
-          END DO
-          ELSE
-            SfcOptics_AD%Reflectivity(1:SfcOptics%n_Angles, 1, 1:SfcOptics%n_Angles, 1) = ZERO
-            SfcOptics_AD%Direct_Reflectivity(1:SfcOptics%n_Angles,1) = ZERO
-            SfcOptics_AD%Emissivity(1:SfcOptics%n_Angles,1) = ZERO
-          END IF
-
-        ELSE ! Specular surface
-        DO i = nZ, 1, -1
-          User_Emissivity_AD = User_Emissivity_AD - SfcOptics_AD%Reflectivity(i,1,i,1)
-        END DO
-        END IF
-!      Direct_Reflectivity_AD = SUM(SfcOptics_AD%Direct_Reflectivity(1:nZ,1))
-!      SfcOptics_AD%Direct_Reflectivity(1,1) = SfcOptics_AD%Direct_Reflectivity(1,1) +
-!                                              (Direct_Reflectivity_AD/PI)
-        RTSolution_AD%Surface_Emissivity = User_Emissivity_AD
-      ELSE
-!! need to check !!
-        RTSolution_AD%Surface_Emissivity = SfcOptics_AD%Emissivity(SfcOptics_AD%Index_Sat_Ang,1) - &
-                                         SfcOptics_AD%Reflectivity(1,1,1,1)
-      END IF
 
     END IF
 
