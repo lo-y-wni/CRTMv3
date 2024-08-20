@@ -60,8 +60,8 @@ PROGRAM SpcCoeff_NC2BIN
     CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
   END IF
 
-  ! Perform the conversion
-  err_stat = SpcCoeff_netCDF_to_Binary( nc_filename, bin_filename, Version = version )
+  ! Perform the conversion (no change to version)
+  err_stat = SpcCoeff_netCDF_to_Binary( nc_filename, bin_filename )
   IF ( err_stat /= SUCCESS ) THEN
     msg = 'SpcCoeff netCDF -> Binary conversion failed!'
     CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
