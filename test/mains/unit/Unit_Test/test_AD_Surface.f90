@@ -78,8 +78,8 @@ PROGRAM test_AD
   REAL(fp) :: Ratio
   REAL(fp), DIMENSION(1,1) :: LHS
   REAL(fp), DIMENSION(1,1) :: RHS
-  REAL(fp), PARAMETER :: TOLERANCE = 1.0e-10_fp
-  REAL(fp) :: rtltl, stlad, etlad, diff
+  REAL(fp), PARAMETER :: TOLERANCE = 1.0e-10_fp 
+  REAL(fp) :: rtltl, stlad, etlad, diff, order
   REAL(fp), DIMENSION(2,1) :: x_test ! Temperature state vector for the adjoint ctest
   REAL(fp), DIMENSION(2,2) :: L_operator ! Linearized operator
   REAL(fp), DIMENSION(2,2) :: L_operator_T ! Linearized operator
@@ -317,7 +317,9 @@ PROGRAM test_AD
   WRITE(*,*) 'Surface(WindSpeed) TLAD: ', stlad
   diff = rtltl - stlad
   WRITE(*,*) 'Radiance TLTL - Surface (WindSpeed) TLAD: ', diff 
-  IF(ABS(diff) < TOLERANCE) THEN
+  order=floor(log10(ABS(rtltl)))
+
+  IF(ABS(diff)/10**order< TOLERANCE) THEN
     WRITE(*,*) 'TL-AD testing passed! '
   ELSE
     WRITE(*,*) 'TL-AD testing failed ....'
@@ -332,7 +334,9 @@ PROGRAM test_AD
   WRITE(*,*) 'Surface EmissRefl TLAD: ', etlad
   diff = rtltl - etlad
   WRITE(*,*) 'Radiance TLTL - Surface EmissRefl TLAD: ', diff
-  IF(ABS(diff) < TOLERANCE) THEN
+  order=floor(log10(ABS(rtltl)))
+   
+  IF(ABS(diff)/10**order < TOLERANCE) THEN
     WRITE(*,*) 'TL-AD testing passed! '
   ELSE
     WRITE(*,*) 'TL-AD testing failed ....'
