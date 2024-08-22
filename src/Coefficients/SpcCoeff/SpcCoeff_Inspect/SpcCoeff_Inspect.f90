@@ -1,7 +1,7 @@
 !
 ! SpcCoeff_Inspect
 !
-! Program to inspect the contents of a CRTM Binary format SpcCoeff file.
+! Program to inspect the contents of a CRTM SpcCoeff file (binary or netCDF)
 !
 !
 ! CREATION HISTORY:
@@ -19,7 +19,7 @@ PROGRAM SpcCoeff_Inspect
   USE Message_Handler   , ONLY: SUCCESS, FAILURE, Program_Message, Display_Message
   USE SpcCoeff_Define   , ONLY: SpcCoeff_type, SpcCoeff_Destroy, &
                                 Inspect => SpcCoeff_Inspect
-  USE SpcCoeff_Binary_IO, ONLY: SpcCoeff_Binary_ReadFile
+  USE SpcCoeff_IO, ONLY: SpcCoeff_ReadFile
   ! Disable implicit typing
   IMPLICIT NONE
 
@@ -36,6 +36,7 @@ PROGRAM SpcCoeff_Inspect
   CHARACTER(256) :: filename, msg
   INTEGER :: n_args
   TYPE(SpcCoeff_type) :: sc
+  LOGICAL :: is_nc, is_bin
 
   ! Generate a string containing the SpcCoeff release for info
   WRITE(msg,'(i10)') sc%Release
@@ -44,7 +45,7 @@ PROGRAM SpcCoeff_Inspect
   ! Output program header
   CALL Program_Message( PROGRAM_NAME, &
                         'Program to display the contents of a CRTM '//&
-                        'Binary format R'//TRIM(ADJUSTL(msg))//' SpcCoeff '//&
+                        'Binary/netCDF format R'//TRIM(ADJUSTL(msg))//' SpcCoeff '//&
                         'file to stdout.', &
                         '$Revision$' )
 
@@ -53,7 +54,7 @@ PROGRAM SpcCoeff_Inspect
   IF ( n_args > 0 ) THEN 
     CALL GET_COMMAND_ARGUMENT(1, filename) 
   ELSE 
-    WRITE( *,FMT='(/5x,"Enter the Binary SpcCoeff filename: ")',ADVANCE='NO' ) 
+    WRITE( *,FMT='(/5x,"Enter the SpcCoeff filename: ")',ADVANCE='NO' ) 
     READ( *,'(a)' ) filename 
   END IF
   filename = ADJUSTL(filename)
@@ -62,10 +63,20 @@ PROGRAM SpcCoeff_Inspect
     CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
   END IF
 
-  ! Read the binary data file
-  err_stat = SpcCoeff_Binary_ReadFile( filename, sc )
+  ! Check if filename ends in ".nc"
+  is_nc = (INDEX(TRIM(filename), '.nc') == LEN_TRIM(filename) - 2)
+
+  ! Check if filename ends in ".bin"
+  is_bin = (INDEX(TRIM(filename), '.bin') == LEN_TRIM(filename) - 3)
+  
+
+  ! Read the data file
+  If (is_bin) err_stat = SpcCoeff_ReadFile( filename, sc )
+  IF (is_nc)  err_stat = SpcCoeff_ReadFile( filename, sc, netCDF=.TRUE. )
+
+
   IF ( err_stat /= SUCCESS ) THEN
-    msg = 'Error reading Binary SpcCoeff file '//TRIM(filename)
+    msg = 'Error reading SpcCoeff file '//TRIM(filename)
     CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
   END IF
 
