@@ -37,9 +37,7 @@ PROGRAM SpcCoeff_NC2BIN
   CHARACTER(256) :: msg, version_str
   CHARACTER(256) :: nc_filename
   CHARACTER(256) :: bin_filename, tmp_filename
-  CHARACTER(256) :: answer
-  INTEGER :: version
-  INTEGER :: iargc
+  INTEGER :: n_args
 
   ! Program header
   CALL CRTM_Version (version_str)
@@ -47,14 +45,15 @@ PROGRAM SpcCoeff_NC2BIN
                         'Program to convert a CRTM SpcCoeff data file '//&
                         'from netCDF to Binary format.', &
                         'CRTM Version:'//trim(version_str) )
-
-  ! Check for command line argument
-  IF (iargc() > 0) THEN
-     CALL getarg(1, nc_filename)
+  
+  ! Get the filename
+  n_args = COMMAND_ARGUMENT_COUNT()
+  IF ( n_args > 0 ) THEN
+     CALL GET_COMMAND_ARGUMENT(1, nc_filename)
      !** automatically generate the binary filename based on the command line netcdf filename
      tmp_filename = nc_filename(1:LEN_TRIM(nc_filename) - 3)//".bin"
      bin_filename = TRIM(ADJUSTL(tmp_filename))  
-     PRINT *, "bin_filename:", bin_filename
+     PRINT *, "Output filename:", bin_filename
   ELSE      
      ! Get the filenames
      WRITE(*,FMT='(/5x,"Enter the INPUT netCDF SpcCoeff filename : ")', ADVANCE='NO')
