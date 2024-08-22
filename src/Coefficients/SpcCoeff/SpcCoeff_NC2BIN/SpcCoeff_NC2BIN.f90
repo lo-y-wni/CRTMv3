@@ -36,9 +36,10 @@ PROGRAM SpcCoeff_NC2BIN
   INTEGER :: err_stat
   CHARACTER(256) :: msg, version_str
   CHARACTER(256) :: nc_filename
-  CHARACTER(256) :: bin_filename
+  CHARACTER(256) :: bin_filename, tmp_filename
   CHARACTER(256) :: answer
   INTEGER :: version
+  INTEGER :: iargc
 
   ! Program header
   CALL CRTM_Version (version_str)
@@ -47,17 +48,26 @@ PROGRAM SpcCoeff_NC2BIN
                         'from netCDF to Binary format.', &
                         'CRTM Version:'//trim(version_str) )
 
-  ! Get the filenames
-  WRITE(*,FMT='(/5x,"Enter the INPUT netCDF SpcCoeff filename : ")', ADVANCE='NO')
-  READ(*,'(a)') nc_filename
-  nc_filename = ADJUSTL(nc_filename)
-  WRITE(*,FMT='(/5x,"Enter the OUTPUT Binary SpcCoeff filename: ")', ADVANCE='NO')
-  READ(*,'(a)') bin_filename
-  bin_filename = ADJUSTL(bin_filename)
-  ! ...Sanity check that they're not the same
-  IF ( bin_filename == nc_filename ) THEN
-    msg = 'SpcCoeff netCDF and Binary filenames are the same!'
-    CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
+  ! Check for command line argument
+  IF (iargc() > 0) THEN
+     CALL getarg(1, nc_filename)
+     !** automatically generate the binary filename based on the command line netcdf filename
+     tmp_filename = nc_filename(1:LEN_TRIM(nc_filename) - 3)//".bin"
+     bin_filename = TRIM(ADJUSTL(tmp_filename))  
+     PRINT *, "bin_filename:", bin_filename
+  ELSE      
+     ! Get the filenames
+     WRITE(*,FMT='(/5x,"Enter the INPUT netCDF SpcCoeff filename : ")', ADVANCE='NO')
+     READ(*,'(a)') nc_filename
+     nc_filename = ADJUSTL(nc_filename)
+     WRITE(*,FMT='(/5x,"Enter the OUTPUT Binary SpcCoeff filename: ")', ADVANCE='NO')
+     READ(*,'(a)') bin_filename
+     bin_filename = ADJUSTL(bin_filename)
+     ! ...Sanity check that they're not the same
+     IF ( bin_filename == nc_filename ) THEN
+        msg = 'SpcCoeff netCDF and Binary filenames are the same!'
+        CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
+     END IF
   END IF
 
   ! Perform the conversion (no change to version)
