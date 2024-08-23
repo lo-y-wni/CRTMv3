@@ -65,14 +65,14 @@ IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
 
 else() # Download CRTM coefficients
   set( CRTM_COEFFS_BRANCH_PREFIX "" )  #preserves the structure of the paths that have been used in jedi previously vs the local path above
-  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.1" ) 
+  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.2" ) 
   
   set(CRTM_COEFFS_PATH ${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION})
   file(MAKE_DIRECTORY ${CRTM_COEFFS_PATH})
   
   set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/")
   set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz) 
-  set(checksum "1ee0d39f08a2548402cf2ad8d26f2f5a") # MD5SUM of fix_REL-3.1.1.1.tgz
+  set(checksum "614fe16fd8e69c9f38fdcdc6068613d5") # MD5SUM of fix_REL-3.1.1.2.tgz
   
   set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
   set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
