@@ -1,9 +1,9 @@
-#https://bin.ssec.wisc.edu/pub/s4/CRTM/fix_REL-3.1.1.0.tgz  (use this for jedi and stand-alone, some files have changed).
+#https://bin.ssec.wisc.edu/pub/s4/CRTM/fix_REL-3.1.1.2.tgz  (use this for jedi and stand-alone, some files have changed).
 
 # This script is used to manually download the tarball of binary and netcdf coefficient files.
 # The same files also download automatically during the cmake step, so you don't have to actually run this manually. 
 
-foldername="fix_REL-3.1.1.0"
+foldername="fix_REL-3.1.1.2"
 filename="${foldername}.tgz"
 echo "$filename"
 break
@@ -20,7 +20,7 @@ if test -f "$filename"; then
     fi 
 else
     #download, untar, move
-		echo "Downloading $filename, please wait about 5 minutes (4 GB tar file)"
+		echo "Downloading $filename, please wait about 7 minutes (7 GB tar file: sorry!)"
 	  wget  https://bin.ssec.wisc.edu/pub/s4/CRTM/$filename # CRTM binary files, add "-q" to suppress output. 
 				
     #untar the file and move directory to fix
