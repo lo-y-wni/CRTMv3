@@ -130,7 +130,7 @@ cd build/
 cmake -D<cmake variables here, see below> ..
 make clean
 make -j8
-make install (optional, see -DCMAKE_INSTALL_PREFIX below)
+make install (optional, see -DCMAKE_INSTALL_PREFIX below, default install location is `<build>/.`)
 ctest -j8
 </pre>
 
@@ -139,8 +139,8 @@ Now we have compiled the linked source codes that reside in the `src/` directory
 
 The CMake variables of interest are:
 `-DCMAKE_BUILD_TYPE = RELEASE / DEBUG / RELWITHDEBINFO`  (default is `RELEASE` if not specified)
-`-DCMAKE_SHARED_LIBS = ON / OFF`   (build shared lib (`lib/libcrtm.so`) or static lib (`lib/libcrtm.a`) --  default is `ON` if not specified)
-`-DCMAKE_INSTALL_PREFIX=<path-to-install>` (default is `lib/' if you don't set this.  You have to run `make install` to install the libcrtm* into your desired directory).
+`-DCMAKE_SHARED_LIBS = ON / OFF`   (build shared lib (`<build>/lib/libcrtm.so`) or static lib (`<build>/lib/libcrtm.a`) --  default is `ON` if not specified)
+`-DCMAKE_INSTALL_PREFIX=<path-to-install>` (You have to run `make install` to install the libcrtm* into your desired directory `<build>/path-to-install`).
 
 
 example:
