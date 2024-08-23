@@ -130,7 +130,7 @@ cd build/
 cmake -D<cmake variables here, see below> ..
 make clean
 make -j8
-make install (optional)
+make install (optional, see -DCMAKE_INSTALL_PREFIX below)
 ctest -j8
 </pre>
 
@@ -138,19 +138,18 @@ ctest -j8
 Now we have compiled the linked source codes that reside in the `src/` directory, and the ctests are built as well.
 
 The CMake variables of interest are:
-```
--DCMAKE_BUILD_TYPE = RELEASE / DEBUG / RELWITHDEBINFO  (default is RELEASE if not specified)
--DCMAKE_SHARED_LIBS = ON / OFF   (build shared lib (libcrtm.so) or static lib (libcrtm.a) --  default is ON if not specified)
--DCMAKE_INSTALL_PREFIX=<path-to-install> (default is /usr/local/, you may want ./ to install into the build/lib64 directory.) 
-```
+`-DCMAKE_BUILD_TYPE = RELEASE / DEBUG / RELWITHDEBINFO`  (default is `RELEASE` if not specified)
+`-DCMAKE_SHARED_LIBS = ON / OFF`   (build shared lib (`lib/libcrtm.so`) or static lib (`lib/libcrtm.a`) --  default is `ON` if not specified)
+`-DCMAKE_INSTALL_PREFIX=<path-to-install>` (default is `lib/' if you don't set this.  You have to run `make install` to install the libcrtm* into your desired directory).
+
 
 example:
 ```
 cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=./install ..
 ```
-this would make a debug build of CRTM, static library (libcrtm.a) and set the optional install location to `<build>/install/lib64/*` (or something similar, search for `libcrtm.*` and `*.mod`).  Custom Install only happens if you issue the make install command. 
+this would make a debug build of CRTM, static library (`libcrtm.a`) and set the optional install location to `<build>/install/.` (or something similar, search for `libcrtm.*` and `*.mod`).  Custom Install only happens if you issue the `make install` command. 
 
-The first time you run `cmake`, it will check for a fix/ directory one level above, and if it does't find it, it will download the binary files (according to `test/CMakeLists.txt` file information), and store them in `<build>/test_data/**`.  
+The first time you run `cmake`, it will check for a `fix/` directory one level above, and if it does't find it, it will download the binary files (according to `test/CMakeLists.txt` file information), and store them in `<build>/test_data/**`.  
 
 Linking to the library
 ----------------------
