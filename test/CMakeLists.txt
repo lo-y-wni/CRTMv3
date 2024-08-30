@@ -72,7 +72,7 @@ else() # Download CRTM coefficients
   
   set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/")
   set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz) 
-  set(checksum "614fe16fd8e69c9f38fdcdc6068613d5") # MD5SUM of fix_REL-3.1.1.2.tgz
+  set(checksum "58e0a5c698a438a31dc4914fcda39846") # MD5SUM of fix_REL-3.1.1.2.tgz
   
   set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
   set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
@@ -246,7 +246,8 @@ list (APPEND TLAD_tests
 
 #####################################################################
 
-
+add_executable(check_tropics mains/application/check_tropics.f90)
+target_link_libraries(check_tropics PRIVATE crtm)
 
 add_executable(test_check_crtm mains/application/check_crtm.F90)
 target_link_libraries(test_check_crtm PRIVATE crtm)
