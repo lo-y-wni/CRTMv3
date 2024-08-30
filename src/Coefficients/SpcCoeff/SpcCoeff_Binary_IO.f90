@@ -693,7 +693,7 @@ CONTAINS
       CALL Write_Cleanup(); RETURN
     END IF
     ! ...Write the channel data
-    IF(SpcCoeff%Version > 2) THEN
+    IF(SpcCoeff%Version > 3) THEN
       WRITE( fid, IOSTAT=io_stat ) &
           SpcCoeff%Sensor_Channel            , &
           SpcCoeff%Polarization              , &
@@ -707,7 +707,7 @@ CONTAINS
           SpcCoeff%Band_C2                   , &
           SpcCoeff%Cosmic_Background_Radiance, &
           SpcCoeff%Solar_Irradiance 
-    ELSE IF(SpcCoeff%Version < 3) THEN
+    ELSE IF(SpcCoeff%Version < 4) THEN
       WRITE( fid, IOSTAT=io_stat ) &
           SpcCoeff%Sensor_Channel            , &
           SpcCoeff%Polarization              , &
