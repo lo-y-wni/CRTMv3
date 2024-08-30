@@ -96,6 +96,7 @@ PROGRAM check_crtm
                                                       'tms_tropics-05', &
                                                       'tms_tropics-06', &
                                                       'tms_tropics-07'   /)
+
   ! Some pretend geometry angles. The scan angle is based
   ! on the default Re (earth radius) and h (satellite height)
   REAL(fp), PARAMETER :: ZENITH_ANGLE = 30.0_fp
@@ -145,8 +146,6 @@ PROGRAM check_crtm
     'Check/example program for the CRTM Forward and K-Matrix functions using coefficient datafiles', &
     'CRTM Version: '//TRIM(Version) )
 
-
-
   ! ============================================================================
   ! STEP 4. **** INITIALIZE THE CRTM ****
   !
@@ -168,8 +167,7 @@ PROGRAM check_crtm
   DO i = 1,2
      if (i==2) Coeff_Format = 'Binary'
      IF (i==1) Coeff_Format = 'netCDF'
-
-
+     
   ! ... Coefficient table format
   IF ( Coeff_Format == 'Binary' ) THEN
     AerosolCoeff_Format = 'Binary'
@@ -303,9 +301,6 @@ PROGRAM check_crtm
                                  Sensor_Scan_Angle   = SCAN_ANGLE )
     ! ==========================================================================
 
-
-
-
     ! ==========================================================================
     ! STEP 7. **** INITIALIZE THE K-MATRIX ARGUMENTS ****
     !
@@ -313,7 +308,6 @@ PROGRAM check_crtm
     ! ---------------------------------------
     CALL CRTM_Atmosphere_Zero( atm_K )
     CALL CRTM_Surface_Zero( sfc_K )
-
 
     ! 7b. Inintialize the K-matrix INPUT so
     !     that the results are dTb/dx
@@ -339,7 +333,6 @@ PROGRAM check_crtm
       CALL Display_Message( PROGRAM_NAME, message, FAILURE )
       STOP
     END IF
-
 
     ! 8b. The K-matrix model
     ! ----------------------
@@ -388,14 +381,12 @@ PROGRAM check_crtm
     CALL CRTM_Atmosphere_Destroy(atm_K)
     CALL CRTM_Atmosphere_Destroy(atm)
 
-
     ! 9b. Deallocate the arrays
     ! -------------------------
     DEALLOCATE(rts, rts_K, sfc_k, atm_k, STAT = alloc_stat)
     ! ==========================================================================
 
   END DO Sensor_Loop
-
 
   ! ==========================================================================
   ! 10. **** DESTROY THE CRTM ****

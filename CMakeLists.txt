@@ -6,8 +6,27 @@ option(OPENMP "Build crtm with OpenMP support" ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
-set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path" )
-message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
+
+# Set the default install path to <build directory>/lib, but allow overriding
+
+#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path")
+if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+	set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE PATH "Install path prefix" FORCE)
+endif()
+
+# Include GNUInstallDirs to get the standard installation directory variables
+include(GNUInstallDirs)
+
+# Force the installation directory for libraries to be "lib" regardless of architecture
+set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Installation directory for libraries" FORCE)
+
+# Set output directory for built libraries to <build directory>/lib
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Optionally, set the runtime output directory (for executables)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 
 # Function to get the current git commit hash
 function(get_git_hash result)
@@ -30,6 +49,12 @@ set(GREEN "${ESCAPE}[32m")
 
 # Output the project name, version, and hash in green text
 message(STATUS "${GREEN}[${PROJECT_NAME}] (${PROJECT_VERSION}) [${PROJECT_HASH}]${RESET}")
+
+# Output the various install/output paths 
+message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
+message("CMAKE_INSTALL_LIBDIR set to ${CMAKE_INSTALL_LIBDIR}")
+message("CMAKE_LIBRARY_OUTPUT_DIRECTORY set to ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+
 
 ## Configuration options
 include(${PROJECT_NAME}_compiler_flags)
@@ -69,6 +94,10 @@ configure_file(
 )
 
 # Installation
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
+set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
+
 install(TARGETS ${PROJECT_NAME}
         EXPORT ${PROJECT_NAME}-config
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
