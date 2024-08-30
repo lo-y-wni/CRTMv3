@@ -69,11 +69,10 @@ PROGRAM SpcCoeff_Inspect
   ! Check if filename ends in ".bin"
   is_bin = (INDEX(TRIM(filename), '.bin') == LEN_TRIM(filename) - 3)
   
-
+  err_stat = FAILURE
   ! Read the data file
   If (is_bin) err_stat = SpcCoeff_ReadFile( filename, sc )
   IF (is_nc)  err_stat = SpcCoeff_ReadFile( filename, sc, netCDF=.TRUE. )
-
 
   IF ( err_stat /= SUCCESS ) THEN
     msg = 'Error reading SpcCoeff file '//TRIM(filename)

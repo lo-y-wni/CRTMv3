@@ -246,6 +246,8 @@ list (APPEND TLAD_tests
 
 #####################################################################
 
+add_executable(check_tropics mains/application/check_tropics.f90)
+target_link_libraries(check_tropics PRIVATE crtm)
 
 
 add_executable(test_check_crtm mains/application/check_crtm.F90)
