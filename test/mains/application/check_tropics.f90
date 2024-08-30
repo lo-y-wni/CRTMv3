@@ -88,14 +88,15 @@ PROGRAM check_crtm
   INTEGER, PARAMETER :: N_AEROSOLS  = 1
 
   ! Sensor information
-  INTEGER     , PARAMETER :: N_SENSORS = 1
-  CHARACTER(*), PARAMETER :: SENSOR_ID(N_SENSORS) = (/'tms_tropics-07'/)
-!                                                      'tms_tropics-02', &
-!                                                      'tms_tropics-03', &
-!                                                      'tms_tropics-04', &
-!                                                      'tms_tropics-01', &
-!                                                      'tms_tropics-06', &
-!                                                      'tms_tropics-05'   /)
+  INTEGER     , PARAMETER :: N_SENSORS = 7
+  CHARACTER(*), PARAMETER :: SENSOR_ID(N_SENSORS) = (/'tms_tropics-01', &
+                                                      'tms_tropics-02', &
+                                                      'tms_tropics-03', &
+                                                      'tms_tropics-04', &
+                                                      'tms_tropics-05', &
+                                                      'tms_tropics-06', &
+                                                      'tms_tropics-07'   /)
+
   ! Some pretend geometry angles. The scan angle is based
   ! on the default Re (earth radius) and h (satellite height)
   REAL(fp), PARAMETER :: ZENITH_ANGLE = 30.0_fp
@@ -166,7 +167,7 @@ PROGRAM check_crtm
   DO i = 1,2
      if (i==2) Coeff_Format = 'Binary'
      IF (i==1) Coeff_Format = 'netCDF'
-
+     
   ! ... Coefficient table format
   IF ( Coeff_Format == 'Binary' ) THEN
     AerosolCoeff_Format = 'Binary'
@@ -299,8 +300,6 @@ PROGRAM check_crtm
                                  Sensor_Zenith_Angle = ZENITH_ANGLE, &
                                  Sensor_Scan_Angle   = SCAN_ANGLE )
     ! ==========================================================================
-
-
 
     ! ==========================================================================
     ! STEP 7. **** INITIALIZE THE K-MATRIX ARGUMENTS ****

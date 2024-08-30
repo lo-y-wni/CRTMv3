@@ -34,35 +34,45 @@ PROGRAM ODAS_NC2BIN
   ! ---------
   ! Variables
   ! ---------
-  INTEGER :: Error_Status
-  CHARACTER(256) :: NC_Filename
+  INTEGER :: Error_Status, n_args
+  CHARACTER(256) :: NC_Filename, tmp_filename
   CHARACTER(256) :: BIN_Filename
   TYPE(ODAS_type) :: ODAS
   TYPE(ODAS_type) :: ODAS_Test
 
-
-  ! Output prgram header
-  CALL Program_Message( PROGRAM_NAME, &
-                        'Program to convert netCDF format ODAS files to '//&
-                        'their CRTM Binary format.', &
-                        '$Revision$' )
-
-  ! Get the input and output filenames
-  WRITE( *, FMT     = '( /5x, "Enter the INPUT netCDF ODAS file: " )', &
-            ADVANCE = 'NO' )
-  READ( *, '( a )' ) NC_Filename
-  NC_Filename = ADJUSTL( NC_Filename )
-  IF ( .NOT. File_Exists( TRIM( NC_Filename ) ) ) THEN
-    CALL Display_Message( PROGRAM_NAME, &
-                          'File '//TRIM( NC_Filename )//' not found.', &
-                          FAILURE )
-    STOP
+  ! Get the filename
+  n_args = COMMAND_ARGUMENT_COUNT()
+  IF ( n_args > 0 ) THEN
+     CALL GET_COMMAND_ARGUMENT(1, NC_Filename)
+     !** automatically generate the binary Filename based on the command line netcdf Filename
+     tmp_filename = NC_Filename(1:LEN_TRIM(NC_Filename) - 3)//".bin"
+     BIN_Filename = TRIM(ADJUSTL(tmp_filename))
+     PRINT *, "Output filename:", BIN_Filename
+     
+  ELSE
+     ! Output prgram header
+     CALL Program_Message( PROGRAM_NAME, &
+          'Program to convert netCDF format ODAS files to '//&
+          'their CRTM Binary format.', &
+          '$Revision$' )
+     
+     ! Get the input and output filenames
+     WRITE( *, FMT     = '( /5x, "Enter the INPUT netCDF ODAS file: " )', &
+          ADVANCE = 'NO' )
+     READ( *, '( a )' ) NC_Filename
+     NC_Filename = ADJUSTL( NC_Filename )
+     IF ( .NOT. File_Exists( TRIM( NC_Filename ) ) ) THEN
+        CALL Display_Message( PROGRAM_NAME, &
+             'File '//TRIM( NC_Filename )//' not found.', &
+             FAILURE )
+        STOP
+     END IF
+     
+     WRITE( *, FMT     = '( /5x, "Enter the OUTPUT Binary ODAS file: " )', &
+          ADVANCE = 'NO' )
+     READ( *, '( a )' ) BIN_Filename
+     BIN_Filename = ADJUSTL( BIN_Filename )
   END IF
-
-  WRITE( *, FMT     = '( /5x, "Enter the OUTPUT Binary ODAS file: " )', &
-            ADVANCE = 'NO' )
-  READ( *, '( a )' ) BIN_Filename
-  BIN_Filename = ADJUSTL( BIN_FileNAME )
 
   ! Check that the netCDF file isn't accidentally overwritten
   IF ( TRIM( NC_Filename ) == TRIM( BIN_Filename ) ) THEN

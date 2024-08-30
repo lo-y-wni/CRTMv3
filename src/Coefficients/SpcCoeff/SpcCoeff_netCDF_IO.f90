@@ -598,7 +598,7 @@ CONTAINS
       CALL Write_Cleanup(); RETURN
     END IF
     ! ...Polarization angle variable
-    IF( SpcCoeff%Version > 2 ) THEN
+    IF( SpcCoeff%Version > 3 ) THEN
       NF90_Status = NF90_INQ_VARID( FileId,POLANGLE_VARNAME,VarId )
       IF ( NF90_Status /= NF90_NOERR ) THEN
         msg = 'Error inquiring '//TRIM(Filename)//' for '//POLANGLE_VARNAME//&
@@ -983,7 +983,7 @@ CONTAINS
       CALL Read_Cleanup(); RETURN
     END IF
     ! ...Polarization angle variable
-    IF ( SpcCoeff%Version > 2 ) THEN
+    IF ( SpcCoeff%Version > 3 ) THEN
       nf90_status = NF90_INQ_VARID( fileid,POLANGLE_VARNAME,varid )
       IF ( nf90_status /= NF90_NOERR ) THEN
         msg = 'Error inquiring '//TRIM(Filename)//' for '//POLANGLE_VARNAME//&
@@ -1591,24 +1591,29 @@ CONTAINS
       msg = 'Error writing '//POLARIZATION_VARNAME//' variable attributes to '//TRIM(Filename)
       CALL Create_Cleanup(); RETURN
     END IF
-    ! ...Polarization angle variable
-    nf90_status = NF90_DEF_VAR( FileID, &
-                                POLANGLE_VARNAME, &
-                                POLANGLE_TYPE, &
-                                dimIDs=(/n_channels_dimid/), &
-                                varID=variD )
-    IF ( nf90_status /= NF90_NOERR ) THEN
-      msg = 'Error defining '//POLANGLE_VARNAME//' variable in '//&
-            TRIM(Filename)//' - '//TRIM(NF90_STRERROR( nf90_status ))
-      CALL Create_Cleanup(); RETURN
-    END IF
-    put_status(1) = NF90_PUT_ATT( FileID,varid,LONGNAME_ATTNAME   ,POLANGLE_LONGNAME    )
-    put_status(2) = NF90_PUT_ATT( FileID,varid,DESCRIPTION_ATTNAME,POLANGLE_DESCRIPTION )
-    put_status(3) = NF90_PUT_ATT( FileID,varid,UNITS_ATTNAME      ,POLANGLE_UNITS       )
-    put_status(4) = NF90_PUT_ATT( FileID,varid,FILLVALUE_ATTNAME  ,POLANGLE_FILLVALUE   )
-    IF ( ANY(put_status /= NF90_NOERR) ) THEN
-      msg = 'Error writing '//POLANGLE_VARNAME//' variable attributes to '//TRIM(Filename)
-      CALL Create_Cleanup(); RETURN
+    
+    IF ( PRESENT(VERSION) ) THEN
+       IF (VERSION > 3) THEN 
+          ! ...Polarization angle variable
+          nf90_status = NF90_DEF_VAR( FileID, &
+               POLANGLE_VARNAME, &
+               POLANGLE_TYPE, &
+               dimIDs=(/n_channels_dimid/), &
+               varID=variD )
+          IF ( nf90_status /= NF90_NOERR ) THEN
+             msg = 'Error defining '//POLANGLE_VARNAME//' variable in '//&
+                  TRIM(Filename)//' - '//TRIM(NF90_STRERROR( nf90_status ))
+             CALL Create_Cleanup(); RETURN
+          END IF
+          put_status(1) = NF90_PUT_ATT( FileID,varid,LONGNAME_ATTNAME   ,POLANGLE_LONGNAME    )
+          put_status(2) = NF90_PUT_ATT( FileID,varid,DESCRIPTION_ATTNAME,POLANGLE_DESCRIPTION )
+          put_status(3) = NF90_PUT_ATT( FileID,varid,UNITS_ATTNAME      ,POLANGLE_UNITS       )
+          put_status(4) = NF90_PUT_ATT( FileID,varid,FILLVALUE_ATTNAME  ,POLANGLE_FILLVALUE   )
+          IF ( ANY(put_status /= NF90_NOERR) ) THEN
+             msg = 'Error writing '//POLANGLE_VARNAME//' variable attributes to '//TRIM(Filename)
+             CALL Create_Cleanup(); RETURN
+          END IF
+       END IF
     END IF
     ! ...Channel_Flag variable
     nf90_status = NF90_DEF_VAR( FileID, &

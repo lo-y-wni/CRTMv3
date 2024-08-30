@@ -34,8 +34,8 @@ PROGRAM ODPS_BIN2NC
   ! ---------
   ! Variables
   ! ---------
-  INTEGER :: Error_Status
-  CHARACTER(256) :: NC_Filename
+  INTEGER :: Error_Status, n_args
+  CHARACTER(256) :: NC_Filename, tmp_filename
   CHARACTER(256) :: BIN_Filename
   TYPE(ODPS_type) :: ODPS
   TYPE(ODPS_type) :: ODPS_Test
@@ -48,30 +48,40 @@ PROGRAM ODPS_BIN2NC
                         '$Revision$' )
 
   ! Get the input and output filenames
-  WRITE( *, FMT     = '( /5x, "Enter the INPUT Binary ODPS file: " )', &
-            ADVANCE = 'NO' )
-  READ( *, '( a )' ) BIN_Filename
-  BIN_Filename = ADJUSTL( BIN_FileNAME )
-  IF ( .NOT. File_Exists( TRIM( BIN_Filename ) ) ) THEN
-    CALL Display_Message( PROGRAM_NAME, &
-                          'File '//TRIM( BIN_Filename )//' not found.', &
-                          FAILURE )
-    STOP
+  ! Get the filename
+  n_args = COMMAND_ARGUMENT_COUNT()
+  IF ( n_args > 0 ) THEN
+     CALL GET_COMMAND_ARGUMENT(1, BIN_filename)
+     !** automatically generate the binary filename based on the command line netcdf filename
+     tmp_filename = BIN_filename(1:LEN_TRIM(BIN_filename) - 4)//".nc"
+     NC_filename = TRIM(ADJUSTL(tmp_filename))
+     PRINT *, "Output filename:", NC_filename
+  ELSE
+     WRITE( *, FMT     = '( /5x, "Enter the INPUT Binary ODPS file: " )', &
+          ADVANCE = 'NO' )
+     READ( *, '( a )' ) BIN_Filename
+     BIN_Filename = ADJUSTL( BIN_FileNAME )
+     IF ( .NOT. File_Exists( TRIM( BIN_Filename ) ) ) THEN
+        CALL Display_Message( PROGRAM_NAME, &
+             'File '//TRIM( BIN_Filename )//' not found.', &
+             FAILURE )
+        STOP
+     END IF
+     
+     WRITE( *, FMT     = '( /5x, "Enter the OUTPUT netCDF ODPS file: " )', &
+          ADVANCE = 'NO' )
+     READ( *, '( a )' ) NC_Filename
+     NC_Filename = ADJUSTL( NC_Filename )
   END IF
-
-  WRITE( *, FMT     = '( /5x, "Enter the OUTPUT netCDF ODPS file: " )', &
-            ADVANCE = 'NO' )
-  READ( *, '( a )' ) NC_Filename
-  NC_Filename = ADJUSTL( NC_Filename )
 
   ! Check that the BIN file isn't accidentally overwritten
   IF ( TRIM( BIN_Filename ) == TRIM( NC_Filename ) ) THEN
-    CALL Display_Message( PROGRAM_NAME, &
-                          'Output filename is the same as the input filename!', &
-                          FAILURE )
-    STOP
+     CALL Display_Message( PROGRAM_NAME, &
+          'Output filename is the same as the input filename!', &
+          FAILURE )
+     STOP
   END IF
-
+  
   ! Read the input binary file
   WRITE( *, '( /5x, "Reading Binary ODPS data ..." )' )
   Error_Status = Read_ODPS_Binary( BIN_Filename, ODPS )

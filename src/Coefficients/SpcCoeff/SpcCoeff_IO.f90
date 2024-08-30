@@ -26,8 +26,11 @@ MODULE SpcCoeff_IO
   USE SpcCoeff_netCDF_IO , ONLY: SpcCoeff_netCDF_InquireFile, &
                                  SpcCoeff_netCDF_ReadFile   , &
                                  SpcCoeff_netCDF_WriteFile
-  USE ACCoeff_netCDF_IO  , ONLY: ACCoeff_netCDF_ReadFile
-  USE NLTECoeff_netCDF_IO, ONLY: NLTECoeff_netCDF_ReadFile
+  USE ACCoeff_Define     , ONLY: ACCoeff_Associated
+  USE NLTECoeff_Define   , ONLY: NLTECoeff_Associated
+  USE ACCoeff_netCDF_IO  , ONLY: ACCoeff_netCDF_ReadFile, ACCoeff_netCDF_WriteFile
+  USE NLTECoeff_netCDF_IO, ONLY: NLTECoeff_netCDF_ReadFile, NLTECoeff_netCDF_WriteFile
+
   ! Disable implicit typing
   IMPLICIT NONE
   
@@ -820,26 +823,62 @@ CONTAINS
       END IF
     END IF
 
-    ! Read the substructure netCDF filenames
+
+    ! Read the substructure netCDF filenames 
     ! ...ACCoeff
     sub_filename = TRIM(spccoeff%Sensor_Id)//'.ACCoeff.nc'
     IF ( File_Exists(sub_filename) ) THEN
       err_stat = ACCoeff_netCDF_ReadFile( sub_filename, spccoeff%AC, Quiet = Quiet )
       IF ( err_stat /= SUCCESS ) THEN
-        msg = 'Error reading netCDF file '//TRIM(sub_filename)
+        msg = 'Error reading existing ACCoeff netCDF file '//TRIM(sub_filename)
         CALL Display_Message( ROUTINE_NAME, msg, err_stat )
         RETURN
       END IF
+    ELSE
+       IF ( ACCoeff_Associated(spccoeff%AC) ) THEN
+          !** there's no external file, but there's an ACCoeff structure
+          !** yoink the spccoeff%AC into sub_filename
+          err_stat = ACCoeff_netCDF_WriteFile( &
+               sub_filename      , &
+               spccoeff%AC       , &
+               Quiet   = Quiet   , &
+               Title   = "Earth, Platform, Space antenna efficiencies for "//trim(adjustl(spccoeff%sensor_id))//" for each fov, channel.", &
+               History = "Extracted from "//trim(adjustl(BIN_Filename))//" using "//trim(adjustl(ROUTINE_NAME))//" Benjamin.T.Johnson@noaa.gov" , &
+               Comment = ""  )
+          IF ( err_stat /= SUCCESS ) THEN
+             msg = 'Error creating ACCoeff netCDF file '//TRIM(sub_filename)
+             CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+             RETURN
+          END IF
+       END IF
     END IF
+
     ! ...NLTECoeff
     sub_filename = TRIM(spccoeff%Sensor_Id)//'.NLTECoeff.nc'
     IF ( File_Exists(sub_filename) ) THEN
-      err_stat = NLTECoeff_netCDF_ReadFile( sub_filename, spccoeff%NC, Quiet = Quiet )
-      IF ( err_stat /= SUCCESS ) THEN
-        msg = 'Error reading netCDF file '//TRIM(sub_filename)
-        CALL Display_Message( ROUTINE_NAME, msg, err_stat )
-        RETURN
-      END IF
+       err_stat = NLTECoeff_netCDF_ReadFile( sub_filename, spccoeff%NC, Quiet = Quiet )
+       IF ( err_stat /= SUCCESS ) THEN
+          msg = 'Error reading netCDF file '//TRIM(sub_filename)
+          CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+          RETURN
+       END IF
+    ELSE
+       IF ( NLTECoeff_Associated(spccoeff%NC) ) THEN
+          !** there's no external file, but there's an NLTECoeff structure
+          !** yoink the spccoeff%NC into sub_filename
+          err_stat = NLTECoeff_netCDF_WriteFile( &
+               sub_filename      , &
+               spccoeff%NC       , &
+               Quiet   = Quiet   , &
+               Title   = "NLTE Coefficients for "//TRIM(ADJUSTL(spccoeff%sensor_id))//"." , &
+               History = "Extracted from "//TRIM(ADJUSTL(BIN_Filename))//" using "//TRIM(ADJUSTL(ROUTINE_NAME))//" Benjamin.T.Johnson@noaa.gov" , &
+               Comment = ""  )
+          IF ( err_stat /= SUCCESS ) THEN
+             msg = 'Error creating NLTECoeff netCDF file '//TRIM(sub_filename)
+             CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+             RETURN
+          END IF
+       END IF
     END IF
 
 
