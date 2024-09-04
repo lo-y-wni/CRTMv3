@@ -65,14 +65,14 @@ IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
 
 else() # Download CRTM coefficients
   set( CRTM_COEFFS_BRANCH_PREFIX "" )  #preserves the structure of the paths that have been used in jedi previously vs the local path above
-  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.1" ) 
+  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.2" ) 
   
   set(CRTM_COEFFS_PATH ${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION})
   file(MAKE_DIRECTORY ${CRTM_COEFFS_PATH})
   
   set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/")
   set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz) 
-  set(checksum "1ee0d39f08a2548402cf2ad8d26f2f5a") # MD5SUM of fix_REL-3.1.1.1.tgz
+  set(checksum "58e0a5c698a438a31dc4914fcda39846") # MD5SUM of fix_REL-3.1.1.2.tgz
   
   set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
   set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
@@ -259,7 +259,8 @@ list (APPEND TLAD_tests
 
 #####################################################################
 
-
+add_executable(check_tropics mains/application/check_tropics.f90)
+target_link_libraries(check_tropics PRIVATE crtm)
 
 add_executable(test_check_crtm mains/application/check_crtm.F90)
 target_link_libraries(test_check_crtm PRIVATE crtm)
@@ -312,7 +313,7 @@ list (APPEND SCoeff_Utils
 	SpcCoeff_NC2BIN
 )
 foreach(testtype IN LISTS SCoeff_Utils)
-	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/SpcCoeff/${testtype}/${testtype}.f90)
+	add_executable(${testtype} ${CRTM_SOURCE_DIR}/src/Coefficients/SpcCoeff/${testtype}/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 
@@ -322,7 +323,7 @@ list (APPEND ODAS_Utils
 	ODAS_NC2BIN
 )
 foreach(testtype IN LISTS ODAS_Utils)
-	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODAS/${testtype}/${testtype}.f90)
+	add_executable(${testtype} ${CRTM_SOURCE_DIR}/src/Coefficients/TauCoeff/ODAS/${testtype}/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 
@@ -332,7 +333,7 @@ list (APPEND ODPS_Utils
 	ODPS_NC2BIN
 )
 foreach(testtype IN LISTS ODPS_Utils)
-	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/TauCoeff/ODPS/${testtype}/${testtype}.f90)
+	add_executable(${testtype} ${CRTM_SOURCE_DIR}/src/Coefficients/TauCoeff/ODPS/${testtype}/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 
@@ -343,7 +344,7 @@ list (APPEND CCoeff_Utils
 	CloudCoeff_Inspect
 )
 foreach(testtype IN LISTS CCoeff_Utils)
-	add_executable(${testtype} ${CMAKE_SOURCE_DIR}/src/Coefficients/CloudCoeff/${testtype}/${testtype}.f90)
+	add_executable(${testtype} ${CRTM_SOURCE_DIR}/src/Coefficients/CloudCoeff/${testtype}/${testtype}.f90)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 

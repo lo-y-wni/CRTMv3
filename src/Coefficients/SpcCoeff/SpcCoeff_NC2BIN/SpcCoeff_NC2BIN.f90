@@ -36,9 +36,8 @@ PROGRAM SpcCoeff_NC2BIN
   INTEGER :: err_stat
   CHARACTER(256) :: msg, version_str
   CHARACTER(256) :: nc_filename
-  CHARACTER(256) :: bin_filename
-  CHARACTER(256) :: answer
-  INTEGER :: version
+  CHARACTER(256) :: bin_filename, tmp_filename
+  INTEGER :: n_args
 
   ! Program header
   CALL CRTM_Version (version_str)
@@ -46,22 +45,32 @@ PROGRAM SpcCoeff_NC2BIN
                         'Program to convert a CRTM SpcCoeff data file '//&
                         'from netCDF to Binary format.', &
                         'CRTM Version:'//trim(version_str) )
-
-  ! Get the filenames
-  WRITE(*,FMT='(/5x,"Enter the INPUT netCDF SpcCoeff filename : ")', ADVANCE='NO')
-  READ(*,'(a)') nc_filename
-  nc_filename = ADJUSTL(nc_filename)
-  WRITE(*,FMT='(/5x,"Enter the OUTPUT Binary SpcCoeff filename: ")', ADVANCE='NO')
-  READ(*,'(a)') bin_filename
-  bin_filename = ADJUSTL(bin_filename)
-  ! ...Sanity check that they're not the same
-  IF ( bin_filename == nc_filename ) THEN
-    msg = 'SpcCoeff netCDF and Binary filenames are the same!'
-    CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
+  
+  ! Get the filename
+  n_args = COMMAND_ARGUMENT_COUNT()
+  IF ( n_args > 0 ) THEN
+     CALL GET_COMMAND_ARGUMENT(1, nc_filename)
+     !** automatically generate the binary filename based on the command line netcdf filename
+     tmp_filename = nc_filename(1:LEN_TRIM(nc_filename) - 3)//".bin"
+     bin_filename = TRIM(ADJUSTL(tmp_filename))  
+     PRINT *, "Output filename:", bin_filename
+  ELSE      
+     ! Get the filenames
+     WRITE(*,FMT='(/5x,"Enter the INPUT netCDF SpcCoeff filename : ")', ADVANCE='NO')
+     READ(*,'(a)') nc_filename
+     nc_filename = ADJUSTL(nc_filename)
+     WRITE(*,FMT='(/5x,"Enter the OUTPUT Binary SpcCoeff filename: ")', ADVANCE='NO')
+     READ(*,'(a)') bin_filename
+     bin_filename = ADJUSTL(bin_filename)
+     ! ...Sanity check that they're not the same
+     IF ( bin_filename == nc_filename ) THEN
+        msg = 'SpcCoeff netCDF and Binary filenames are the same!'
+        CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
+     END IF
   END IF
 
-  ! Perform the conversion
-  err_stat = SpcCoeff_netCDF_to_Binary( nc_filename, bin_filename, Version = version )
+  ! Perform the conversion (no change to version)
+  err_stat = SpcCoeff_netCDF_to_Binary( nc_filename, bin_filename )
   IF ( err_stat /= SUCCESS ) THEN
     msg = 'SpcCoeff netCDF -> Binary conversion failed!'
     CALL Display_Message( PROGRAM_NAME, msg, FAILURE ); STOP
