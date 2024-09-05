@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 3.12 )
+cmake_minimum_required(VERSION 3.12)
 
 project(crtm VERSION 3.1.1 LANGUAGES Fortran)
 
@@ -7,28 +7,24 @@ option(OPENMP "Build crtm with OpenMP support" ON)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_DIRECTORY_LABELS ${PROJECT_NAME})
 
-# Set the default install path to <build directory>/lib, but allow overriding
-
-#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "default install path")
-if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
-	set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE PATH "Install path prefix" FORCE)
-endif()
-
 # Include GNUInstallDirs to get the standard installation directory variables
 include(GNUInstallDirs)
 
-# Force the installation directory for libraries to be "lib" regardless of architecture
-set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Installation directory for libraries" FORCE)
+# Set custom installation paths for crtm only (MODIFIED SECTION)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CRTM_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/lib" CACHE PATH "crtm install path" FORCE)
+else()
+    set(CRTM_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+endif()
 
-# Set output directory for built libraries to <build directory>/lib
+message("CRTM_INSTALL_PREFIX set to ${CRTM_INSTALL_PREFIX}")
+
+# Set output directories (unchanged from original)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-# Optionally, set the runtime output directory (for executables)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-
-# Function to get the current git commit hash
+# Function to get the current git commit hash (unchanged from original)
 function(get_git_hash result)
     execute_process(
         COMMAND git rev-parse --short HEAD
@@ -39,28 +35,27 @@ function(get_git_hash result)
     set(${result} ${GIT_HASH} PARENT_SCOPE)
 endfunction()
 
-# Get the git hash
+# Get the git hash (unchanged from original)
 get_git_hash(PROJECT_HASH)
 
-# Define ANSI color code for green
+# Define ANSI color code for green (unchanged from original)
 string(ASCII 27 ESCAPE)
 set(RESET "${ESCAPE}[0m")
 set(GREEN "${ESCAPE}[32m")
 
-# Output the project name, version, and hash in green text
+# Output the project name, version, and hash in green text (unchanged from original)
 message(STATUS "${GREEN}[${PROJECT_NAME}] (${PROJECT_VERSION}) [${PROJECT_HASH}]${RESET}")
 
-# Output the various install/output paths 
+# Output the various install/output paths (unchanged from original)
 message("CMAKE_INSTALL_PREFIX set to ${CMAKE_INSTALL_PREFIX}")
 message("CMAKE_INSTALL_LIBDIR set to ${CMAKE_INSTALL_LIBDIR}")
 message("CMAKE_LIBRARY_OUTPUT_DIRECTORY set to ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 
-
-## Configuration options
+## Configuration options (unchanged from original)
 include(${PROJECT_NAME}_compiler_flags)
 include(GNUInstallDirs)
 
-## Dependencies
+## Dependencies (unchanged from original)
 if(OPENMP)
   find_package(OpenMP COMPONENTS Fortran)
 
@@ -83,28 +78,23 @@ elseif(DEFINED ENV{NETCDF})
 endif()
 find_package(NetCDF REQUIRED Fortran)
 
-## Sources
+## Sources (unchanged from original)
 add_subdirectory(src)
 
-# Generate and configure the project config file
+# Generate and configure the project config file (unchanged from original)
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/crtm-config.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/crtm-config.cmake"
   @ONLY
 )
 
-# Installation
-set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
-set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
-set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
-
+# Installation for crtm (MODIFIED SECTION)
 install(TARGETS ${PROJECT_NAME}
         EXPORT ${PROJECT_NAME}-config
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-#add_dependencies(${PROJECT_NAME} install)
+        ARCHIVE DESTINATION ${CRTM_INSTALL_PREFIX}/lib
+        LIBRARY DESTINATION ${CRTM_INSTALL_PREFIX}/lib)
 
-# Generate the version file for the config package
+# Generate the version file for the config package (unchanged from original)
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/crtm-config-version.cmake"
@@ -112,53 +102,49 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion
 )
 
-# Install the generated or configured files
+# Install the generated or configured files (unchanged from original)
 install(FILES 
               "${CMAKE_CURRENT_BINARY_DIR}/crtm-config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/crtm-config-version.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+        DESTINATION ${CRTM_INSTALL_PREFIX}/cmake/${PROJECT_NAME})
 
-# Install the export set for use with the install-tree
+# Install the export set for use with the install-tree (unchanged, with modified destination)
 install(EXPORT ${PROJECT_NAME}-config
 	FILE "${PROJECT_NAME}-targets.cmake"
-	# Note: NAMESPACEs need downstream JEDI changes to link crtm::crtm instead of just crtm.
-	#NAMESPACE ${PROJECT_NAME}::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+	DESTINATION ${CRTM_INSTALL_PREFIX}/cmake/${PROJECT_NAME})
 
-# For build-tree linkage
+# For build-tree linkage (unchanged from original)
 export(EXPORT ${PROJECT_NAME}-config
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-targets.cmake"
 )
 
+# Additional settings for test and build type (unchanged from original)
 set(CRTM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(test)
 include(CTest)
 
-# Summary
+# Summary (unchanged from original)
 message(STATUS "Configuration summary")
 message(STATUS "Project name : ${PROJECT_NAME}")
 message(STATUS "Project version : ${PROJECT_VERSION}")
 message(STATUS "Fortran compiler : ${CMAKE_Fortran_COMPILER}")
 message(STATUS "Fortran compiler flags : ${CMAKE_Fortran_FLAGS}")
+
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 message(STATUS "Build type : ${CMAKE_BUILD_TYPE}")
+
 if(CMAKE_BUILD_TYPE_UPPER STREQUAL "RELEASE")
-    # Commands for Release build
-		message(STATUS "Fortran compiler flags for release : ${CMAKE_Fortran_FLAGS_RELEASE}")
+    message(STATUS "Fortran compiler flags for release : ${CMAKE_Fortran_FLAGS_RELEASE}")
 elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
-    # Commands for Debug build
-		message(STATUS "Fortran compiler flags for debug : ${CMAKE_Fortran_FLAGS_DEBUG}")
+    message(STATUS "Fortran compiler flags for debug : ${CMAKE_Fortran_FLAGS_DEBUG}")
 else()
-    # Commands for other build types
-		message(STATUS "No build type specified, defaulting to Release.")
+    message(STATUS "No build type specified, defaulting to Release.")
 endif()
 
-#export the CRTM_SOURCE_DIR for use in the test framework (ensures compatibility with jedi-bundle)
+#export the CRTM_SOURCE_DIR for use in the test framework (unchanged from original)
 
-
-#set(crtm_LIBRARIES crtm)
