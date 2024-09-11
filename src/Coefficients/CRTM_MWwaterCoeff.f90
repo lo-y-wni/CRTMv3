@@ -1,12 +1,12 @@
 !
 ! CRTM_MWwaterCoeff
 !
-! Module containing the shared CRTM microwave water surface emissivity
-! data and their load/destruction routines. 
+! Module containing the shared CRTM visible water surface emissivity
+! data and their load/destruction routines.
 !
 ! PUBLIC DATA:
-!   MWwaterC:  Data structure containing the microwave water surface
-!              emissivity data.
+!   MWwaterC:  Data structure containing the visible water surface
+!               emissivity data.
 !
 ! SIDE EFFECTS:
 !       Routines in this module modify the contents of the public
@@ -17,9 +17,11 @@
 !       CRTM initialisation.
 !
 ! CREATION HISTORY:
-!       Written by:     Paul van Delst, 12-Nov-2011
+!       Written by:     Paul van Delst, 20-Jan-2012
 !                       paul.vandelst@noaa.gov
-!
+!      Modified by:     Benjamin Johnson, 9-Sept-2024
+!                       benjamin.t.johnson@noaa.gov
+!                       replicate netCDF support from VISwater
 
 MODULE CRTM_MWwaterCoeff
 
@@ -27,11 +29,11 @@ MODULE CRTM_MWwaterCoeff
   ! Environment setup
   ! -----------------
   ! Module use
-  USE Message_Handler    , ONLY: SUCCESS, FAILURE, Display_Message
-  USE MWwaterCoeff_Define, ONLY: MWwaterCoeff_type      , &
-                                 MWwaterCoeff_Associated, &
-                                 MWwaterCoeff_Destroy   , &
-                                 MWwaterCoeff_Readfile
+  USE Message_Handler  , ONLY: SUCCESS, FAILURE, Display_Message
+  USE SEcategory_Define, ONLY: SEcategory_type, &
+                               SEcategory_Associated, &
+                               SEcategory_Destroy
+  USE SEcategory_IO,     ONLY: SEcategory_ReadFile_IO
   ! Disable all implicit typing
   IMPLICIT NONE
 
@@ -56,10 +58,10 @@ MODULE CRTM_MWwaterCoeff
   INTEGER, PARAMETER :: ML = 512
 
 
-  ! --------------------------------------------------
-  ! The shared microwave water surface emissivity data
-  ! --------------------------------------------------
-  TYPE(MWwaterCoeff_type), TARGET, SAVE :: MWwaterC
+  ! ------------------------------------------------
+  ! The shared visible water surface emissivity data
+  ! ------------------------------------------------
+  TYPE(SEcategory_type), SAVE :: MWwaterC
 
 
 CONTAINS
@@ -72,13 +74,14 @@ CONTAINS
 !       CRTM_MWwaterCoeff_Load
 !
 ! PURPOSE:
-!       Function to load the microwave water surface emissivity data into
+!       Function to load the visible water surface emissivity data into
 !       the public data structure MWwaterC
 !
 ! CALLING SEQUENCE:
 !       Error_Status = CRTM_MWwaterCoeff_Load( &
 !                        Filename,                              &
 !                        File_Path         = File_Path        , &
+!                        netCDF            = netCDF           , &
 !                        Quiet             = Quiet            , &
 !                        Process_ID        = Process_ID       , &
 !                        Output_Process_ID = Output_Process_ID  )
@@ -97,6 +100,15 @@ CONTAINS
 !                           directory is the default.
 !                           UNITS:      N/A
 !                           TYPE:       CHARACTER(*)
+!                           DIMENSION:  Scalar
+!                           ATTRIBUTES: INTENT(IN), OPTIONAL
+!
+!       netCDF:             Set this logical argument to specify file format.
+!                           If == .FALSE., Binary [DEFAULT].
+!                              == .TRUE.,  netCDF
+!                           If not specified, default is .FALSE.
+!                           UNITS:      N/A
+!                           TYPE:       LOGICAL
 !                           DIMENSION:  Scalar
 !                           ATTRIBUTES: INTENT(IN), OPTIONAL
 !
@@ -123,7 +135,7 @@ CONTAINS
 !       Output_Process_ID:  Set this argument to the MPI process ID in which
 !                           all INFORMATION messages are to be output. If
 !                           the passed Process_ID value agrees with this value
-!                           the INFORMATION messages are output. 
+!                           the INFORMATION messages are output.
 !                           This argument is ignored if the Quiet argument
 !                           is set.
 !                           UNITS:      N/A
@@ -151,6 +163,7 @@ CONTAINS
   FUNCTION CRTM_MWwaterCoeff_Load( &
     Filename         , &  ! Input
     File_Path        , &  ! Optional input
+    netCDF           , &  ! Optional input
     Quiet            , &  ! Optional input
     Process_ID       , &  ! Optional input
     Output_Process_ID) &  ! Optional input
@@ -158,7 +171,8 @@ CONTAINS
     ! Arguments
     CHARACTER(*),           INTENT(IN) :: Filename
     CHARACTER(*), OPTIONAL, INTENT(IN) :: File_Path
-    LOGICAL     , OPTIONAL, INTENT(IN) :: Quiet             
+    LOGICAL,      OPTIONAL, INTENT(IN) :: netCDF
+    LOGICAL     , OPTIONAL, INTENT(IN) :: Quiet
     INTEGER     , OPTIONAL, INTENT(IN) :: Process_ID
     INTEGER     , OPTIONAL, INTENT(IN) :: Output_Process_ID
     ! Function result
@@ -169,8 +183,10 @@ CONTAINS
     CHARACTER(ML) :: msg, pid_msg
     CHARACTER(ML) :: MWwaterCoeff_File
     LOGICAL :: noisy
+    ! Function variables
+    LOGICAL :: Binary
 
-    ! Setup 
+    ! Setup
     err_stat = SUCCESS
     ! ...Assign the filename to local variable
     MWwaterCoeff_File = ADJUSTL(Filename)
@@ -189,18 +205,30 @@ CONTAINS
     ELSE
       pid_msg = ''
     END IF
-    
-    
-    ! Read the MWwaterCoeff data file
-    err_stat = MWwaterCoeff_ReadFile( &
+    ! ...Check netCDF argument
+    Binary = .TRUE.
+    IF ( PRESENT(netCDF) ) Binary = .NOT. netCDF
+
+
+    ! Read the MW water SEcategory file
+    err_stat = SEcategory_ReadFile_IO( &
                  MWwaterC, &
                  MWwaterCoeff_File, &
+                 netCDF = .NOT. Binary, &
                  Quiet = .NOT. noisy )
     IF ( err_stat /= SUCCESS ) THEN
-      msg = 'Error reading MWwaterCoeff file '//TRIM(MWwaterCoeff_File)//TRIM(pid_msg)
-      CALL Display_Message( ROUTINE_NAME, msg, err_stat )
-      RETURN
+      msg = 'Error reading MWwaterCoeff SEcategory file '//TRIM(MWwaterCoeff_File)//TRIM(pid_msg)
+      CALL Load_Cleanup(); RETURN
     END IF
+
+
+   CONTAINS
+
+     SUBROUTINE Load_CleanUp()
+       CALL SEcategory_Destroy( MWwaterC )
+       err_stat = FAILURE
+       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+     END SUBROUTINE Load_CleanUp
 
   END FUNCTION CRTM_MWwaterCoeff_Load
 
@@ -213,7 +241,7 @@ CONTAINS
 !
 ! PURPOSE:
 !       Function to deallocate the public data structure MWwaterC containing
-!       the CRTM microwave water surface emissivity data.
+!       the CRTM visible water surface emissivity data.
 !
 ! CALLING SEQUENCE:
 !       Error_Status = CRTM_MWwaterCoeff_Destroy( Process_ID = Process_ID )
@@ -266,8 +294,8 @@ CONTAINS
     END IF
 
     ! Destroy the structure
-    CALL MWwaterCoeff_Destroy( MWwaterC )
-    IF ( MWwaterCoeff_Associated( MWwaterC ) ) THEN
+    CALL SEcategory_Destroy( MWwaterC )
+    IF ( SEcategory_Associated( MWwaterC ) ) THEN
       err_stat = FAILURE
       msg = 'Error deallocating MWwaterCoeff shared data structure'//TRIM(pid_msg)
       CALL Display_Message( ROUTINE_NAME, msg, err_stat ); RETURN
@@ -275,7 +303,7 @@ CONTAINS
 
   END FUNCTION CRTM_MWwaterCoeff_Destroy
 
-  
+
 !------------------------------------------------------------------------------
 !:sdoc+:
 !
@@ -283,7 +311,7 @@ CONTAINS
 !       CRTM_MWwaterCoeff_IsLoaded
 !
 ! PURPOSE:
-!       Function to test if microwave water surface emissivity data has
+!       Function to test if visible water surface emissivity data has
 !       been loaded into the public data structure MWwaterC.
 !
 ! CALLING SEQUENCE:
@@ -294,7 +322,7 @@ CONTAINS
 
   FUNCTION CRTM_MWwaterCoeff_IsLoaded() RESULT( IsLoaded )
     LOGICAL :: IsLoaded
-    IsLoaded = MWwaterCoeff_Associated( MWwaterC )
+    IsLoaded = SEcategory_Associated( MWwaterC )
   END FUNCTION CRTM_MWwaterCoeff_IsLoaded
 
 END MODULE CRTM_MWwaterCoeff
