@@ -7,9 +7,7 @@ foldername="fix_REL-3.1.1.2"
 checksum=58e0a5c698a438a31dc4914fcda39846
 filename="${foldername}.tgz"
 echo "$filename"
-
 download_url=https://bin.ssec.wisc.edu/pub/s4/CRTM/$filename
-md5sum_url="${download_url}.md5sum"
 
 
 # Check if the fix directory already exists, indicating that no download is needed.
