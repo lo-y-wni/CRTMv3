@@ -11,7 +11,13 @@ echo "$filename"
 download_url=https://bin.ssec.wisc.edu/pub/s4/CRTM/$filename
 md5sum_url="${download_url}.md5sum"
 
-set -x
+
+# Check if the fix directory already exists, indicating that no download is needed.
+if [ -d "fix/" ]; then #fix directory exists
+    echo "fix/ already exists, doing nothing."
+    exit 0
+fi
+
 # If var $CRTM_BINARY_FILES_TARBALL is set, confirm the checksum then
 # update the "filename" var.
 if [ -f "$CRTM_BINARY_FILES_TARBALL" ]; then
@@ -27,16 +33,8 @@ if [ -f "$CRTM_BINARY_FILES_TARBALL" ]; then
     fi
 fi
 
-# If this script downloaded the file, it will have written the checksum
-# to fix/checksum. Check for the existence of this file and end execution
-# if it is present.
-mkdir -p fix
-if test -f fix/checksum ; then
-    exit 0
-fi
-
 # If the file is not present in the pwd (or at the location set by
-# $CRTM_BINARY_FILES_TARBALL) download it.
+# $CRTM_BINARY_FILES_TARBALL) download the coefficients file.
 if ! test -f "$filename"; then
     echo "Downloading $filename, please wait about 7 minutes (7 GB tar file: sorry!)"
     wget $download_url # CRTM binary files, add "-q" to suppress output.
@@ -45,10 +43,8 @@ fi
 # Extract the file to pwd and write the checksum.
 untar the file and move directory to fix
 tar -zxvf $filename -C "${PWD}"
-mkdir fix
+mkdir -p fix
 mv $foldername/fix/* fix/.
 rm -rf $foldername
-# Write the indicator file.
-echo "${foldername}: ${checksum}" > fix/checksum
 
 echo "Completed."
