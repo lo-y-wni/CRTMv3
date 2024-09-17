@@ -40,7 +40,7 @@ if ! test -f "$filename"; then
     wget $download_url # CRTM binary files, add "-q" to suppress output.
 fi
 
-# Extract the file to pwd and write the checksum.
+# Extract the file to the working directory.
 untar the file and move directory to fix
 tar -zxvf $filename -C "${PWD}"
 mkdir -p fix
