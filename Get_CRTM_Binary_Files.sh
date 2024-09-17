@@ -4,30 +4,51 @@
 # The same files also download automatically during the cmake step, so you don't have to actually run this manually. 
 
 foldername="fix_REL-3.1.1.2"
+checksum=58e0a5c698a438a31dc4914fcda39846
 filename="${foldername}.tgz"
 echo "$filename"
-break
 
-if test -f "$filename"; then
-    if [ -d "fix/" ]; then #fix directory exists
-        echo "fix/ already exists, doing nothing."
+download_url=https://bin.ssec.wisc.edu/pub/s4/CRTM/$filename
+md5sum_url="${download_url}.md5sum"
+
+set -x
+# If var $CRTM_BINARY_FILES_TARBALL is set, confirm the checksum then
+# update the "filename" var.
+if [ -f "$CRTM_BINARY_FILES_TARBALL" ]; then
+    local_checksum=$(md5sum $CRTM_BINARY_FILES_TARBALL | cut -d ' ' -f 1)
+    if [ "${local_checksum}" = "${checksum}" ]; then
+        filename=$CRTM_BINARY_FILES_TARBALL
     else
-        #untar the file and move directory to fix
-				tar -zxvf $filename
-				mv $foldername/fix .
-				rm -rf $foldername
-				echo "fix/ directory created from existing $filename file."
-    fi 
-else
-    #download, untar, move
-		echo "Downloading $filename, please wait about 7 minutes (7 GB tar file: sorry!)"
-	  wget  https://bin.ssec.wisc.edu/pub/s4/CRTM/$filename # CRTM binary files, add "-q" to suppress output. 
-				
-    #untar the file and move directory to fix
-    tar -zxvf $filename
-    mkdir fix
-    mv $foldername/fix/* fix/.
-    rm -rf $foldername
-  	echo "fix/ directory created from downloaded $filename."
+        # Exit with failure.
+        echo "Var CRTM_BINARY_FILES_TARBALL is set but does not match expected"
+        echo "checksum of $checksum. Confirm you have the correct tarball and"
+        echo "try again, or unset this variable"
+        exit 1
+    fi
 fi
+
+# If this script downloaded the file, it will have written the checksum
+# to fix/checksum. Check for the existence of this file and end execution
+# if it is present.
+mkdir -p fix
+if test -f fix/checksum ; then
+    exit 0
+fi
+
+# If the file is not present in the pwd (or at the location set by
+# $CRTM_BINARY_FILES_TARBALL) download it.
+if ! test -f "$filename"; then
+    echo "Downloading $filename, please wait about 7 minutes (7 GB tar file: sorry!)"
+    wget $download_url # CRTM binary files, add "-q" to suppress output.
+fi
+
+# Extract the file to pwd and write the checksum.
+untar the file and move directory to fix
+tar -zxvf $filename -C "${PWD}"
+mkdir fix
+mv $foldername/fix/* fix/.
+rm -rf $foldername
+# Write the indicator file.
+echo "${foldername}: ${checksum}" > fix/checksum
+
 echo "Completed."
