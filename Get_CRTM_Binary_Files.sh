@@ -16,9 +16,17 @@ if [ -d "fix/" ]; then #fix directory exists
     exit 0
 fi
 
-# If var $CRTM_BINARY_FILES_TARBALL is set, confirm the checksum then
-# update the "filename" var.
-if [ -f "$CRTM_BINARY_FILES_TARBALL" ]; then
+# If var $CRTM_BINARY_FILES_TARBALL is set, confirm the file exists and  confirm
+# the checksum then update the "filename" var.
+if [ -n "${CRTM_BINARY_FILES_TARBALL}" ]; then
+    echo "Found CRTM_BINARY_FILES_TARBALL=${CRTM_BINARY_FILES_TARBALL}"
+
+    # Since the tarball var is set, verify the file exists then verify the
+    # checksum. Failure here will stop and throw an error.
+    if [ ! -f "$CRTM_BINARY_FILES_TARBALL" ]; then
+        echo "But no file exists at this path. Fix the file path or unset this variable"
+        exit 1
+    fi
     local_checksum=$(md5sum $CRTM_BINARY_FILES_TARBALL | cut -d ' ' -f 1)
     if [ "${local_checksum}" = "${checksum}" ]; then
         filename=$CRTM_BINARY_FILES_TARBALL
@@ -31,16 +39,19 @@ if [ -f "$CRTM_BINARY_FILES_TARBALL" ]; then
     fi
 fi
 
-# If the file is not present in the pwd (or at the location set by
-# $CRTM_BINARY_FILES_TARBALL) download the coefficients file.
+# If the file is not present in the pwd (or otherwise provided by
+# CRTM_BINARY_FILES_TARBALL as already verified), download the coefficients file.
 if ! test -f "$filename"; then
-    echo "Downloading $filename, please wait about 7 minutes (7 GB tar file: sorry!)"
-    wget $download_url # CRTM binary files, add "-q" to suppress output.
+    # Ensure that filename is set to the local directory.
+    filename="${foldername}.tgz"
+    echo "Downloading $filename (7 GB tar file)"
+    wget $download_url -O "${filename}"
 fi
 
 # Extract the file to the working directory.
-untar the file and move directory to fix
-tar -zxvf $filename -C "${PWD}"
+# untar the file and move directory to fix
+echo "Extracting ${filename}"
+tar -zxvf $filename -C "$PWD"
 mkdir -p fix
 mv $foldername/fix/* fix/.
 rm -rf $foldername
