@@ -188,32 +188,30 @@ list( APPEND AOD_Sensor_Ids
 
 # Create list of sensor ids for testing
 list( APPEND Zeeman_Sensor_Ids
-      ssmis_f20
-      ssmis_f19
-      ssmis_f18
-      ssmis_f17
-      ssmis_f16
+        ssmis_f20
+        ssmis_f19
+        ssmis_f18
+        ssmis_f17
+        ssmis_f16
 )
 
 
 list( APPEND ChannelSubset_Sensor_Ids
-      iasi_metop-b
+        iasi_metop-b
 )
 
 list( APPEND Aircraft_Sensor_Ids
-      cris-fsr_n21
-      crisB1_npp
+        cris-fsr_n21
+        crisB1_npp
+        v.abi_gr
+        abi_g18
 )
 
 list( APPEND Downwelling_Radiance_Sensor_Ids
-        atms_n21
         cris-fsr_n21
-        v.abi_g18
-        atms_npp
-        cris399_npp
+        crisB1_npp
         v.abi_gr
         abi_g18
-        modis_aqua
 )
 
 
@@ -221,39 +219,41 @@ list( APPEND OMPoverChannels_Sensor_Ids
         atms_n21
 )
 
-list (APPEND common_tests
-     Simple
-     AOD
-     Zeeman
-     ChannelSubset
-     ClearSky
-     Aircraft
-     Downwelling_Radiance
-     ScatteringSwitch
-     User_Emissivity
-     SOI
-     SSU
-     VerticalCoordinates
+list( APPEND common_tests
+        Simple
+        AOD
+        Zeeman
+        ChannelSubset
+        ClearSky
+        Aircraft
+        Downwelling_Radiance
+        ScatteringSwitch
+        User_Emissivity
+        SOI
+        SSU
+        VerticalCoordinates
 )
 
-list (APPEND omp_tests
-     OMPoverChannels
+list( APPEND omp_tests
+        OMPoverChannels
 )
 
 
-list (APPEND regression_types
-     forward
-     k_matrix
+list( APPEND regression_types
+        forward
+        k_matrix
 )
 
-list (APPEND TLAD_types
-     adjoint
-     tangent_linear
+list( APPEND TLAD_types
+        adjoint
+        tangent_linear
 )
 
-list (APPEND TLAD_tests
-     Simple
-     ClearSky
+list( APPEND TLAD_tests
+        Simple
+        ClearSky
+        Aircraft
+        Downwelling_Radiance
 )
 
 
@@ -439,7 +439,16 @@ endforeach()
 #---------------------------------------------------------------------------------
 #TLAD Regression tests
 foreach(regtype IN LISTS TLAD_types)
+  string(COMPARE EQUAL ${regtype} "adjoint" isregtype)	
   foreach(testtype IN LISTS TLAD_tests)
+    string(COMPARE EQUAL ${testtype} "Aircraft" istesttype)
+    if (isregtype AND istesttype)
+       continue() #skip Aircraft type for adjoint
+    endif()
+    string(COMPARE EQUAL ${testtype} "Downwelling_Radiance" istesttype)
+    if (isregtype AND istesttype)
+       continue() #skip Downwelling_Radiance type for adjoint
+    endif()
     add_executable(test_${regtype}_test_${testtype} mains/regression/${regtype}/test_${testtype}/test_${testtype}.f90)
     target_link_libraries(test_${regtype}_test_${testtype} PRIVATE crtm)
 

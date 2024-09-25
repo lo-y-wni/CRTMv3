@@ -657,9 +657,9 @@ CONTAINS
         CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
         RETURN
       END IF
-  
-      Atm_TL%Height = Atm%Height 
-   
+
+      Atm_TL%Height = Atm%Height
+
       ! ...Check the total number of Atm layers
       IF ( Atm%n_Layers > MAX_N_LAYERS .OR. Atm_TL%n_Layers > MAX_N_LAYERS) THEN
         Error_Status = FAILURE
@@ -859,6 +859,40 @@ CONTAINS
                                          Predictor_TL(nt)  , &  ! Output
                                          PVar(nt)            )  ! Internal variable input
 
+        ! Process aircraft pressure altitude
+        IF ( Opt%Aircraft_Pressure > ZERO ) THEN
+          RTV(nt)%aircraft%rt = .TRUE.
+          RTV(nt)%aircraft%idx = CRTM_Get_PressureLevelIdx(Atm, Opt%Aircraft_Pressure)
+          ! ...Issue warning if profile level is TOO different from flight level
+          IF ( ABS(Atm%Level_Pressure(RTV(nt)%aircraft%idx)-Opt%Aircraft_Pressure) > AIRCRAFT_PRESSURE_THRESHOLD ) THEN
+             WRITE( Message,'("Difference between aircraft pressure level (",es22.15,&
+                  &"hPa) and closest input profile level (",es22.15,&
+                  &"hPa) is larger than recommended (",f4.1,"hPa) for profile #",i0)') &
+                  Opt%Aircraft_Pressure, Atm%Level_Pressure(RTV(nt)%aircraft%idx), &
+                  AIRCRAFT_PRESSURE_THRESHOLD, m
+             CALL Display_Message( ROUTINE_NAME, Message, WARNING )
+          END IF
+        ELSE
+          RTV(nt)%aircraft%rt = .FALSE.
+        END IF
+
+        ! Process observing downward radiance, Obs_4_downward_P = ZERO means at surface
+        !  Obs_4_downward_P > ZERO, sensor at the pressure
+        IF ( Opt%Obs_4_downward_P > ZERO ) THEN
+          RTV(nt)%Obs_4_downward%rt = .TRUE.
+          RTV(nt)%Obs_4_downward%idx = CRTM_Get_PressureLevelIdx(Atm, Opt%Obs_4_downward_P)
+          ! ...Issue warning if profile level is TOO different from flight level
+          IF ( ABS(Atm%Level_Pressure(RTV(nt)%Obs_4_downward%idx)-Opt%Obs_4_downward_P) > AIRCRAFT_PRESSURE_THRESHOLD ) THEN
+             WRITE( Message,'("Difference between Obs pressure level (",es22.15,&
+                              &"hPa) and closest input profile level (",es22.15,&
+                              &"hPa) is larger than recommended (",f4.1,"hPa) for profile #",i0)') &
+                              Opt%Obs_4_downward_P, Atm%Level_Pressure(RTV%Obs_4_downward%idx), &
+                              AIRCRAFT_PRESSURE_THRESHOLD, m
+             CALL Display_Message( ROUTINE_NAME, Message, WARNING )
+          END IF
+        ELSE
+          RTV(nt)%Obs_4_downward%rt = .FALSE.
+        END IF
 
           ! Compute predictors for AtmAbsorption calcs
           ! ...Allocate the predictor structure
@@ -1339,7 +1373,7 @@ CONTAINS
                                              SensorIndex     , & ! Input
                                              ChannelIndex    , & ! Input
                                              RTSolution(ln,m))   ! Input/Output
-                                             
+
               CALL CRTM_Compute_Reflectivity_TL(Atm                 , & ! Input
                                                 AtmOptics(nt)       , & ! Input
                                                 AtmOptics_TL(nt)    , & ! Input
