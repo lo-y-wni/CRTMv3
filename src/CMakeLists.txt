@@ -91,6 +91,7 @@ list( APPEND crtm_src_files
       Coefficients/SpcCoeff/SpcCoeff_Define.f90
       Coefficients/SpcCoeff/SpcCoeff_IO.f90
       Coefficients/SpcCoeff/SpcCoeff_netCDF_IO.f90
+      Coefficients/SpcCoeff/AntCorr/AntCorr_Application.f90
       Coefficients/TauCoeff/ODAS/ODAS_Binary_IO.f90
       Coefficients/TauCoeff/ODAS/ODAS_netCDF_IO.f90
       Coefficients/TauCoeff/ODAS/ODAS_Define.f90

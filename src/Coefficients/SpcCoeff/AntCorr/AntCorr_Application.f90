@@ -9,6 +9,10 @@
 !       Written by:     Paul van Delst, CIMSS/SSEC 11-Aug-2008
 !                       paul.vandelst@noaa.gov
 !
+!   2011-04-25   A.Collard   Modified to be consistent with CRTM 2.1
+!   2020-04-21   S.Sieron    Added Apply_Antcorr so that all assimlated
+!                            observations be brightness temperatures
+! 
 
 MODULE AntCorr_Application
 
@@ -18,20 +22,7 @@ MODULE AntCorr_Application
   ! Module use statements
   USE Type_Kinds       , ONLY: fp
   USE Message_Handler  , ONLY: Display_Message, FAILURE
-  USE AntCorr_Define   , ONLY: AntCorr_type, &
-                               Associated_AntCorr, &
-                               Destroy_AntCorr, &
-                               Allocate_AntCorr, &
-                               Assign_AntCorr, &
-                               Equal_AntCorr, &
-                               Info_AntCorr, &
-                               CheckRelease_AntCorr
-  USE AntCorr_netCDF_IO, ONLY: Inquire_AntCorr_netCDF, &
-                               Read_AntCorr_netCDF, &
-                               Write_AntCorr_netCDF
-  USE AntCorr_Binary_IO, ONLY: Inquire_AntCorr_Binary, &
-                               Read_AntCorr_Binary, &
-                               Write_AntCorr_Binary
+  USE ACCoeff_Define   , ONLY: ACCoeff_type
   ! Disable all implicit typing
   IMPLICIT NONE
 
@@ -44,36 +35,13 @@ MODULE AntCorr_Application
   ! Inherited procedures from definition module
   ! -------------------------------------------
   ! The AntCorr structure definition
-  PUBLIC :: AntCorr_type
-  ! The AntCorr structure methods
-  PUBLIC :: Associated_AntCorr
-  PUBLIC :: Destroy_AntCorr
-  PUBLIC :: Allocate_AntCorr
-  PUBLIC :: Assign_AntCorr
-  PUBLIC :: Equal_AntCorr
-  PUBLIC :: Info_AntCorr
-  PUBLIC :: CheckRelease_AntCorr
-  ! Inherited procedures from I/O modules
-  ! -------------------------------------
-  ! The netCDF I/O functions
-  PUBLIC :: Inquire_AntCorr_netCDF
-  PUBLIC :: Write_AntCorr_netCDF
-  PUBLIC :: Read_AntCorr_netCDF
-  ! The Binary I/O functions
-  PUBLIC :: Inquire_AntCorr_Binary
-  PUBLIC :: Read_AntCorr_Binary
-  PUBLIC :: Write_AntCorr_Binary
-  ! Module procedures
-  ! -----------------
+  PUBLIC :: ACCoeff_type
   PUBLIC :: Remove_AntCorr
   PUBLIC :: Apply_AntCorr
-
-
+  
   ! -----------------
   ! Module parameters
   ! -----------------
-  CHARACTER(*),  PARAMETER :: MODULE_RCS_ID = &
-
   ! Invalid result
   REAL(fp), PARAMETER :: INVALID = -1.0_fp
     
@@ -82,7 +50,6 @@ MODULE AntCorr_Application
   !    Far-Infrared Absolute Spectrophotometer (FIRAS)"
   !    Astrophysical Journal, vol 512, pp 511-520
   REAL(fp), PARAMETER :: TSPACE = 2.7253_fp
-  
 
 CONTAINS
 
@@ -113,7 +80,7 @@ CONTAINS
 !       AC:             Structure containing the antenna correction coefficients
 !                       for the sensor of interest.
 !                       UNITS:      N/A
-!                       TYPE:       TYPE(AntCorr_type)
+!                       TYPE:       TYPE(ACCoeff_type)
 !                       DIMENSION:  Scalar
 !                       ATTRIBUTES: INTENT(IN)
 !
@@ -162,8 +129,10 @@ CONTAINS
   SUBROUTINE Remove_AntCorr( AC  , &  ! Input
                              iFOV, &  ! Input
                              T     )  ! In/Output
+    implicit none
+
     ! Arguments
-    TYPE(AntCorr_type), INTENT(IN)     :: AC
+    TYPE(ACCoeff_type), INTENT(IN)     :: AC
     INTEGER           , INTENT(IN)     :: iFOV
     REAL(fp)          , INTENT(IN OUT) :: T(:)
     ! Local parameters
@@ -206,7 +175,7 @@ CONTAINS
 !       AC:             Structure containing the antenna correction coefficients
 !                       for the sensor of interest.
 !                       UNITS:      N/A
-!                       TYPE:       TYPE(AntCorr_type)
+!                       TYPE:       TYPE(ACCoeff_type)
 !                       DIMENSION:  Scalar
 !                       ATTRIBUTES: INTENT(IN)
 !
@@ -216,8 +185,8 @@ CONTAINS
 !                       DIMENSION:  Scalar
 !                       ATTRIBUTES: INTENT(IN)
 !
-!       T:              On input, this argument contains the antenna temperatures
-!                       for the sensor channels.
+!       T:              On input, this argument contains the antenna
+!                       temperatures for the sensor channels.
 !                       UNITS:      Kelvin
 !                       TYPE:       REAL(fp)
 !                       DIMENSION:  Rank-1 (n_Channels)
@@ -239,32 +208,35 @@ CONTAINS
 !       For every FOV and channel, the antenna temperature, Ta, is converted
 !       to brightness temperature, Tb, using,
 !
-!               Ta - As.Ts
-!         Tb = ------------
-!                Ae + Ap
+!         Tb = (Ta - As.Ts) / (Ae + Ap)
 !
 !       where Ae == antenna efficiency for the Earth view
 !             Ap == antenna efficiency for satellite platform view
 !             As == antenna efficiency for cold space view
 !             Ts == cosmic background temperature.
 !
-!       Note that the earth view brightness temperature is used as a proxy for
-!       the platform temperature since there is no measurement of the platform
-!       temperature in-flight.
+!       Note that the observed earth view brightness temperature is used as a
+!       proxy for the platform temperature for the (Ap.Tb) component since
+!       there is no measurement of the platform temperature in-flight.
 !
 !--------------------------------------------------------------------------------
 
   SUBROUTINE Apply_AntCorr( AC  , &  ! Input
                             iFOV, &  ! Input
                             T     )  ! In/Output
+
+    implicit none
+
     ! Arguments
-    TYPE(AntCorr_type), INTENT(IN)     :: AC
+    TYPE(ACCoeff_type), INTENT(IN)     :: AC
     INTEGER           , INTENT(IN)     :: iFOV
-    REAL(fp)          , INTENT(IN OUT) :: T(:)
+    REAL              , INTENT(IN OUT) :: T(:)
     ! Local parameters
     CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'Apply_AntCorr'
     ! Local variables
     INTEGER :: l
+
+    
     ! Check input
     IF ( iFOV < 1 .OR. iFOV > AC%n_FOVS ) THEN
       CALL Display_Message( ROUTINE_NAME, 'Input iFOV inconsistent with AC data', FAILURE )
@@ -278,8 +250,10 @@ CONTAINS
     END IF
     ! Compute the brightness temperature
     DO l = 1, AC%n_Channels
-      T(l) = (T(l) - AC%A_space(iFOV,l)*TSPACE)/(AC%A_earth(iFOV,l)+AC%A_platform(iFOV,l))
+      T(l) = (T(l) - AC%A_space(iFOV,l)*TSPACE) / (AC%A_earth(iFOV,l) + &
+              AC%A_platform(iFOV,l))
     END DO
   END SUBROUTINE Apply_AntCorr
+
   
 END MODULE AntCorr_Application
