@@ -74,6 +74,8 @@ list( APPEND crtm_src_files
       Coefficients/EmisCoeff/IR_Snow/IRsnowCoeff_netCDF_IO.f90
       Coefficients/EmisCoeff/MW_Water/MWwaterCoeff_Define.f90
       Coefficients/EmisCoeff/MW_Water/MWwaterLUT/MWwaterLUT_Define.f90
+      Coefficients/EmisCoeff/MW_Water/MWwaterCoeff_CreateFile/MWwaterCoeff_FASTEM6.f90
+      Coefficients/EmisCoeff/MW_Water/MWwaterCoeff_CreateFile/MWwaterCoeff_FASTEM4.f90
       Coefficients/EmisCoeff/SEcategory/SEcategory_Define.f90
       Coefficients/EmisCoeff/SEcategory/SEcategory_IO.f90
       Coefficients/EmisCoeff/SEcategory/SEcategory_netCDF_IO.f90
