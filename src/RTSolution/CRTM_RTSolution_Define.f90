@@ -14,6 +14,7 @@
 !
 !  Modified by:    Cheng Dang, 09-Aug-2023, add CRTM_RTSolution_WriteFile_netCDF
 !                  dangch@ucar.edu
+!                  Benjamin Johnson, 20-Nov-2024, remove module version ID code.
 !
 
 
@@ -100,12 +101,9 @@ MODULE CRTM_RTSolution_Define
     MODULE PROCEDURE Rank2_Inspect
   END INTERFACE CRTM_RTSolution_Inspect
 
-
   ! -----------------
   ! Module parameters
   ! -----------------
-  CHARACTER(*), PARAMETER :: MODULE_VERSION_ID = &
-  '$Id: CRTM_RTSolution_Define.f90 100697 2018-12-21 18:33:44Z tong.zhu@noaa.gov $'
   ! Literal constants
   REAL(fp), PARAMETER :: ZERO = 0.0_fp
   REAL(fp), PARAMETER :: ONE  = 1.0_fp
@@ -566,38 +564,6 @@ CONTAINS
       END DO
     END DO
   END SUBROUTINE Rank2_Inspect
-
-
-
-
-!--------------------------------------------------------------------------------
-!:sdoc+:
-!
-! NAME:
-!   CRTM_RTSolution_DefineVersion
-!
-! PURPOSE:
-!   Subroutine to return the module version information.
-!
-! CALLING SEQUENCE:
-!   CALL CRTM_RTSolution_DefineVersion( Id )
-!
-! OUTPUTS:
-!   Id:            Character string containing the version Id information
-!                  for the module.
-!                  UNITS:      N/A
-!                  TYPE:       CHARACTER(*)
-!                  DIMENSION:  Scalar
-!                  ATTRIBUTES: INTENT(OUT)
-!
-!:sdoc-:
-!--------------------------------------------------------------------------------
-
-  SUBROUTINE CRTM_RTSolution_DefineVersion( Id )
-    CHARACTER(*), INTENT(OUT) :: Id
-    Id = MODULE_VERSION_ID
-  END SUBROUTINE CRTM_RTSolution_DefineVersion
-
 
 !------------------------------------------------------------------------------
 !:sdoc+:
