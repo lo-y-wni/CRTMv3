@@ -75,7 +75,8 @@ MODULE CRTM_LifeCycle
                                      CRTM_VISiceCoeff_Destroy
   ! ...Microwave surface emissivities
   USE CRTM_MWwaterCoeff      , ONLY: CRTM_MWwaterCoeff_Load, &
-                                     CRTM_MWwaterCoeff_Destroy
+                                     CRTM_MWwaterCoeff_Destroy, &
+                                     CRTM_MWwaterCoeff_Load_FASTEM
   ! Disable all implicit typing
   IMPLICIT NONE
 
@@ -538,6 +539,7 @@ CONTAINS
     VISsnowCoeff_File   , &  ! Optional input
     VISiceCoeff_File    , &  ! Optional input
     MWwaterCoeff_File   , &  ! Optional input
+    MWwaterCoeff_Scheme , &  ! Optional input
     IRwaterCoeff_Format , &  ! Optional input
     IRlandCoeff_Format  , &  ! Optional input
     IRsnowCoeff_Format  , &  ! Optional input
@@ -576,6 +578,7 @@ CONTAINS
     CHARACTER(*),      OPTIONAL, INTENT(IN)  :: VISsnowCoeff_File
     CHARACTER(*),      OPTIONAL, INTENT(IN)  :: VISiceCoeff_File
     CHARACTER(*),      OPTIONAL, INTENT(IN)  :: MWwaterCoeff_File
+    CHARACTER(*),      OPTIONAL, INTENT(IN)  :: MWwaterCoeff_Scheme
     CHARACTER(*),      OPTIONAL, INTENT(IN)  :: IRwaterCoeff_Format
     CHARACTER(*),      OPTIONAL, INTENT(IN)  :: IRlandCoeff_Format
     CHARACTER(*),      OPTIONAL, INTENT(IN)  :: IRsnowCoeff_Format
@@ -616,6 +619,7 @@ CONTAINS
     CHARACTER(SL) :: Default_VISsnowCoeff_File
     CHARACTER(SL) :: Default_VISiceCoeff_File
     CHARACTER(SL) :: Default_MWwaterCoeff_File
+    CHARACTER(SL) :: Default_MWwaterCoeff_Scheme
     CHARACTER(SL) :: Default_IRwaterCoeff_Format
     CHARACTER(SL) :: Default_IRlandCoeff_Format
     CHARACTER(SL) :: Default_IRsnowCoeff_Format
@@ -689,6 +693,7 @@ CONTAINS
     Default_VISsnowCoeff_File   = 'NPOESS.VISsnow.EmisCoeff.bin'
     Default_VISiceCoeff_File    = 'NPOESS.VISice.EmisCoeff.bin'
     Default_MWwaterCoeff_File   = 'FASTEM6.MWwater.EmisCoeff.bin'
+    Default_MWwaterCoeff_Scheme = 'FASTEM6'
     ! ... Default file formats
     Default_AerosolCoeff_Format = 'Binary'
     Default_CloudCoeff_Format   = 'Binary'
@@ -731,6 +736,9 @@ CONTAINS
     IF ( PRESENT(VISlandCoeff_Format ) ) Default_VISlandCoeff_Format  = TRIM(ADJUSTL(VISlandCoeff_Format))
     IF ( PRESENT(VISsnowCoeff_Format ) ) Default_VISsnowCoeff_Format  = TRIM(ADJUSTL(VISsnowCoeff_Format))
     IF ( PRESENT(VISiceCoeff_Format  ) ) Default_VISiceCoeff_Format   = TRIM(ADJUSTL(VISiceCoeff_Format))
+    ! ...MW water emissivity scheme
+    IF ( PRESENT(MWwaterCoeff_Scheme ) ) Default_MWwaterCoeff_Scheme  = TRIM(ADJUSTL(MWwaterCoeff_Scheme))
+
     ! ...Was a path specified?
     IF ( PRESENT(File_Path) ) THEN
       Default_MWwaterCoeff_File  = TRIM(ADJUSTL(File_Path)) // TRIM(Default_MWwaterCoeff_File)
@@ -848,7 +856,7 @@ CONTAINS
       END IF
       IF ( .NOT. Quiet_ ) THEN
         WRITE(*, '("Loading IR land emissivity coefficients: ", a) ') TRIM(Default_IRlandCoeff_File)
-      END IF 
+      END IF
       err_stat = CRTM_IRlandCoeff_Load( &
                    Default_IRlandCoeff_File, &
                    File_Path         = Default_File_Path, &
@@ -1039,14 +1047,29 @@ CONTAINS
       WRITE(*, '("Loading MW water emissivity coefficients: ", a) ') TRIM(Default_MWwaterCoeff_File)
     END IF
     Microwave_Sensor: IF ( ANY(SpcCoeff_IsMicrowaveSensor(SC)) ) THEN
-      ! ...MW water
-      err_stat = CRTM_MWwaterCoeff_Load( &
-                   Default_MWwaterCoeff_File, &
+
+      ! Note: this module is only needed for FASTEM5 scheme and the corresponding
+      ! Binary lookup tables.
+      ! ! ...MW water
+      ! err_stat = CRTM_MWwaterCoeff_Load( &
+      !              Default_MWwaterCoeff_File, &
+      !              Quiet             = Quiet            , &
+      !              Process_ID        = Process_ID       , &
+      !              Output_Process_ID = Output_Process_ID  )
+      ! IF ( err_stat /= SUCCESS ) THEN
+      !   msg = 'Error loading MWwaterCoeff data from '//TRIM(Default_MWwaterCoeff_File)
+      !   CALL Display_Message( ROUTINE_NAME,TRIM(msg)//TRIM(pid_msg),err_stat )
+      !   RETURN
+      ! END IF
+
+      ! ...MW water without LUT, support FASTEM4 and FASTEM6
+      err_stat = CRTM_MWwaterCoeff_Load_FASTEM( &
+                   Default_MWwaterCoeff_Scheme          , &
                    Quiet             = Quiet            , &
                    Process_ID        = Process_ID       , &
                    Output_Process_ID = Output_Process_ID  )
       IF ( err_stat /= SUCCESS ) THEN
-        msg = 'Error loading MWwaterCoeff data from '//TRIM(Default_MWwaterCoeff_File)
+        msg = 'Error loading MWwaterCoeff module '//TRIM(Default_MWwaterCoeff_Scheme)
         CALL Display_Message( ROUTINE_NAME,TRIM(msg)//TRIM(pid_msg),err_stat )
         RETURN
       END IF

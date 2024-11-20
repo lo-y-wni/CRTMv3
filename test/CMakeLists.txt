@@ -406,6 +406,13 @@ add_test(NAME test_hypsometric_eq
          COMMAND $<TARGET_FILE:hypsometric_eq>)
 set_tests_properties(test_hypsometric_eq PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
+# test_MWwater_io
+add_executable(MWwater_IO mains/unit/input_output/test_MWwater/test_MWwater_io.f90)
+target_link_libraries(MWwater_IO PRIVATE crtm)
+add_test(NAME test_MWwater_io
+         COMMAND $<TARGET_FILE:MWwater_IO>)
+set_tests_properties(test_MWwater_io PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
 #=================================================================================
 #forward and k_matrix regression tests
 foreach(regtype IN LISTS regression_types)
@@ -499,6 +506,7 @@ CloudCoeff/Little_Endian/CloudCoeff.bin
 CloudCoeff/netCDF/CloudCoeff.nc4
 CloudCoeff/netCDF/CloudCoeff_DDA_Moradi_2022.nc4
 EmisCoeff/MW_Water/Little_Endian/FASTEM6.MWwater.EmisCoeff.bin
+EmisCoeff/MW_Water/Little_Endian/FASTEM4.MWwater.EmisCoeff.bin
 EmisCoeff/IR_Ice/SEcategory/Little_Endian/NPOESS.IRice.EmisCoeff.bin
 EmisCoeff/IR_Ice/SEcategory/netCDF/NPOESS.IRice.EmisCoeff.nc4
 EmisCoeff/IR_Land/SEcategory/Little_Endian/NPOESS.IRland.EmisCoeff.bin
