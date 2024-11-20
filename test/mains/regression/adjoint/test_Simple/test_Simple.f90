@@ -30,8 +30,8 @@ PROGRAM test_Simple
   CHARACTER(*), PARAMETER :: Cloud_Model   = 'CRTM'
 
   ! Aerosol/Cloud coefficient format
-  CHARACTER(*), PARAMETER :: Coeff_Format = 'Binary'
-  !CHARACTER(*), PARAMETER :: Coeff_Format = 'netCDF'
+  !CHARACTER(*), PARAMETER :: Coeff_Format = 'Binary'
+  CHARACTER(*), PARAMETER :: Coeff_Format = 'netCDF'
 
 
 
@@ -85,9 +85,7 @@ PROGRAM test_Simple
   TYPE(CRTM_Atmosphere_type), ALLOCATABLE :: atm_AD(:)
   TYPE(CRTM_Surface_type)   , ALLOCATABLE :: sfc_AD(:)
 
-
-
-
+  
   ! ============================================================================
   ! 1. **** DEFINE THE CRTM INTERFACE STRUCTURES ****
   !
