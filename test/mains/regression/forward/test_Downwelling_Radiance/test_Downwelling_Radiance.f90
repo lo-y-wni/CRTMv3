@@ -1,11 +1,11 @@
 !
-! test_Aircraft
+! test_Downwelling_Radiance
 !
-! Test program for the aircraft instrument option
+! Test program for the downwelling radiance/BT options
 !
 !
 
-PROGRAM test_Aircraft
+PROGRAM test_Downwelling_Radiance
 
   ! ============================================================================
   ! **** ENVIRONMENT SETUP FOR RTM USAGE ****
@@ -20,7 +20,7 @@ PROGRAM test_Aircraft
   ! ----------
   ! Parameters
   ! ----------
-  CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'test_Aircraft'
+  CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'test_Downwelling_Radiance'
   CHARACTER(*), PARAMETER :: COEFFICIENTS_PATH = './testinput/'
   CHARACTER(*), PARAMETER :: RESULTS_PATH = './results/forward/'
 
@@ -52,10 +52,10 @@ PROGRAM test_Aircraft
   CHARACTER(256) :: Sensor_Id
   INTEGER :: Error_Status
   INTEGER :: Allocate_Status
-  INTEGER :: n_Channels
+  INTEGER :: n_Channels, n_Stokes
   INTEGER :: l, m
   ! Declarations for RTSolution comparison
-  INTEGER :: n_l, n_m
+  INTEGER :: n_l, n_m, n_k, n_s
   CHARACTER(256) :: rts_File
   TYPE(CRTM_RTSolution_type), ALLOCATABLE :: rts(:,:)
 
@@ -105,7 +105,7 @@ PROGRAM test_Aircraft
   Error_Status = CRTM_Init( (/Sensor_Id/), &
                             ChannelInfo, &
                             File_Path=COEFFICIENTS_PATH, &
-                            Load_CloudCoeff   = .TRUE., &
+                            Load_CloudCoeff   = .TRUE.,  &
                             Load_AerosolCoeff = .TRUE.)
   IF ( Error_Status /= SUCCESS ) THEN
     Message = 'Error initializing CRTM'
@@ -169,7 +169,7 @@ PROGRAM test_Aircraft
 
   ! 4c. Set the aircraft pressure altitude
   ! --------------------------------------
-  Opt%Aircraft_Pressure = 320.0_fp
+  Opt%obs_4_downward_P = 320.0_fp
   ! ============================================================================
 
 
@@ -197,13 +197,13 @@ PROGRAM test_Aircraft
   ! ============================================================================
   ! 6. **** OUTPUT THE RESULTS TO SCREEN ****
   !
-  DO m = 1, N_PROFILES
-    WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, TRIM(Sensor_Id)
-    DO l = 1, n_Channels
-      WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
-      CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
-    END DO
-  END DO
+  ! DO m = 1, N_PROFILES
+  !   WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, TRIM(Sensor_Id)
+  !   DO l = 1, n_Channels
+  !     WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
+  !     CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
+  !   END DO
+  ! END DO
   ! ============================================================================
 
   ! ============================================================================
@@ -282,6 +282,7 @@ PROGRAM test_Aircraft
     END IF
     STOP 1
   END IF
+
   ! ============================================================================
 
   ! ============================================================================
@@ -315,4 +316,4 @@ CONTAINS
   INCLUDE 'Load_Atm_Data.inc'
   INCLUDE 'Load_Sfc_Data.inc'
 
-END PROGRAM test_Aircraft
+END PROGRAM test_Downwelling_Radiance

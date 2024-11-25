@@ -7,13 +7,13 @@
 ! NOTE: Modified as generic "bucket" for all RT-related algorithm,
 !       ADA, AMOM, and SOI.
 !       This is initial step in truly separating out the algorithms
-!       into their own modules. Currently each algorithm ties into 
+!       into their own modules. Currently each algorithm ties into
 !       the same RTV components (not good.)
-!       
+!
 !
 !
 ! CREATION HISTORY:
-!       Written by:     Quanhua Liu,    QSS at JCSDA;    Quanhua.Liu@noaa.gov 
+!       Written by:     Quanhua Liu,    QSS at JCSDA;    Quanhua.Liu@noaa.gov
 !                       Yong Han,       NOAA/NESDIS;     Yong.Han@noaa.gov
 !                       Paul van Delst, paul.vandelst@noaa.gov
 !                       08-Jun-2004
@@ -54,12 +54,13 @@ MODULE RTV_Define
   PUBLIC :: MAX_N_SOI_ITERATIONS
   ! Datatypes
   PUBLIC :: aircraft_rt_type
+  PUBLIC :: obs_4_downward_type
   PUBLIC :: RTV_type
   ! Procedures
   PUBLIC :: RTV_Associated
   PUBLIC :: RTV_Destroy
   PUBLIC :: RTV_Create
-  
+
   ! -----------------
   ! Module parameters
   ! -----------------
@@ -72,20 +73,20 @@ MODULE RTV_Define
   ! Small positive value used to replace negative
   ! values in the computed phase function
   REAL(fp), PARAMETER :: PHASE_THRESHOLD = 1.0e-7_fp
-  
+
   REAL(fp), PARAMETER :: DELTA_OPTICAL_DEPTH = 1.0e-8_fp
   REAL(fp), PARAMETER :: MAX_ALBEDO = 0.999999_fp
-  
+
   ! Threshold layer optical depth for single scattering
   REAL(fp), PARAMETER :: SMALL_OD_FOR_SC = 1.E-5_fp
 
-  ! The maximum number of doubling processes in the 
-  ! the doubling-adding scheme. 
+  ! The maximum number of doubling processes in the
+  ! the doubling-adding scheme.
   INTEGER,  PARAMETER :: MAX_N_DOUBLING = 55
-  
+
   ! The maximum number of iterations for the SOI solution method.
   INTEGER,  PARAMETER :: MAX_N_SOI_ITERATIONS = 75
-  INTEGER,  PARAMETER :: MAX_N_AMOM = 5  
+  INTEGER,  PARAMETER :: MAX_N_AMOM = 5
   ! ---------------------
   ! Structure definitions
   ! ---------------------
@@ -95,33 +96,39 @@ MODULE RTV_Define
     LOGICAL :: rt = .FALSE.
     ! The output level index
     INTEGER :: idx
-  END TYPE aircraft_rt_type  
-
+  END TYPE aircraft_rt_type
+  ! ...Downward AD calculation
+  TYPE :: obs_4_downward_type
+    ! The switch
+    LOGICAL :: rt = .FALSE.
+    ! The output level index
+    INTEGER :: idx
+  END TYPE obs_4_downward_type
   ! --------------------------------------
   ! Structure definition to hold forward
   ! variables across FWD, TL, and AD calls
   ! --------------------------------------
   TYPE :: RTV_type
-  
+
     ! Type of sensor
   INTEGER :: MAX_N_AMOM = 5
     INTEGER :: Sensor_Type = INVALID_SENSOR
-    
+
     ! Type of RT algorithm
     INTEGER :: RT_Algorithm_Id = RT_AMOM
     INTEGER :: MF         = 0
-    INTEGER :: n_Stokes        = 1    
+    INTEGER :: n_Stokes        = 1
     ! Dimension information
     INTEGER :: n_Layers         = 0       ! Total number of atmospheric layers
     INTEGER :: n_Added_Layers   = 0       ! Number of layers appended to TOA
     INTEGER :: n_Angles         = 0       ! Number of angles to be considered
     INTEGER :: n_SOI_Iterations = 0       ! Number of SOI iterations
-    
+
 
     REAL(fp):: COS_SUN = ZERO           ! Cosine of sun zenith angle
     REAL(fp):: Solar_irradiance = ZERO  ! channel solar irradiance at TOA
-    REAL(fp):: Cosmic_Background_Radiance = ZERO ! For background temp=2.7253 
-            
+    REAL(fp):: Cosmic_Background_Radiance = ZERO ! For background temp=2.7253
+
     ! Variable to hold the various portions of the
     ! radiance for emissivity retrieval algorithms
     ! Passed to FWD RTSolution structure argument output
@@ -159,16 +166,19 @@ MODULE RTV_Define
     ! Logical switches
     LOGICAL :: Diffuse_Surface = .TRUE.
     LOGICAL :: Is_Solar_Channel = .FALSE.
-    
+
     ! Aircraft model RT information
     TYPE(aircraft_rt_type) :: aircraft
 
-    ! Scattering, visible model variables    
-    INTEGER :: n_Streams         = 0       ! Number of *hemispheric* stream angles used in RT    
+    ! Downwelling radiance
+    TYPE(obs_4_downward_type) :: obs_4_downward
+
+    ! Scattering, visible model variables
+    INTEGER :: n_Streams         = 0       ! Number of *hemispheric* stream angles used in RT
     INTEGER :: mth_Azi                     ! mth fourier component
     INTEGER :: n_Azi                       ! number of fourier components
     LOGICAL :: Solar_Flag_true   = .FALSE.
-    LOGICAL :: Visible_Flag_true = .FALSE. 
+    LOGICAL :: Visible_Flag_true = .FALSE.
     LOGICAL :: Scattering_RT     = .FALSE.
 
     !-----------------------------------
@@ -176,7 +186,7 @@ MODULE RTV_Define
     !-----------------------------------
     ! Flag to indicate the following arrays have all been allocated
     LOGICAL :: Is_Allocated = .FALSE.
-     
+
     ! Phase function variables
     ! Forward and backward scattering phase matrices
     REAL(fp), ALLOCATABLE :: Pff(:,:,:)  ! MAX_N_ANGLES, MAX_N_ANGLES+1, MAX_N_LAYERS
@@ -186,13 +196,13 @@ MODULE RTV_Define
     REAL(fp), ALLOCATABLE :: Pplus(:,:)  ! 0:MAX_N_LEGENDRE_TERMS, MAX_N_ANGLES
     REAL(fp), ALLOCATABLE :: Pminus(:,:) ! 0:MAX_N_LEGENDRE_TERMS, MAX_N_ANGLES
     REAL(fp), ALLOCATABLE :: Pleg(:,:)   ! 0:MAX_N_LEGENDRE_TERMS, MAX_N_ANGLES+1
-    
+
     ! Original forward and backward scattering phase matrices.
     ! These may be slightly negative and, if so, need to be made
     ! positive and thus adjusted to ensure energy conservation
     REAL(fp), ALLOCATABLE :: Off(:,:,:)  ! MAX_N_ANGLES, MAX_N_ANGLES+1, MAX_N_LAYERS
     REAL(fp), ALLOCATABLE :: Obb(:,:,:)  ! MAX_N_ANGLES, MAX_N_ANGLES+1, MAX_N_LAYERS
-    
+
     ! Normalisation factor and intermediate sum used for original
     ! phase matrix energy conservation.
     REAL(fp), ALLOCATABLE :: n_Factor(:,:)  ! MAX_N_ANGLES, MAX_N_LAYERS
@@ -208,9 +218,24 @@ MODULE RTV_Define
 
     REAL(fp), ALLOCATABLE :: s_Level_Refl_UP(:,:,:)   ! MAX_N_ANGLES, MAX_N_ANGLES, 0:MAX_N_LAYERS
     REAL(fp), ALLOCATABLE :: s_Level_Rad_UP(:,:)      ! MAX_N_ANGLES, 0:MAX_N_LAYERS
-     
+
     REAL(fp), ALLOCATABLE :: s_Layer_Source_UP(:,:)   ! MAX_N_ANGLES, MAX_N_LAYERS
     REAL(fp), ALLOCATABLE :: s_Layer_Source_DOWN(:,:) ! MAX_N_ANGLES, MAX_N_LAYERS
+
+    ! ... Aircraft level and downward AD calculation
+    REAL(fp), ALLOCATABLE :: Inv_Gamma2(:,:,:)         ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: Inv_Gamma2T(:,:,:)        ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: Inv_Gamma3(:,:,:)         ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
+
+    REAL(fp), ALLOCATABLE :: s_Level_Rad_UPT(:,:)      ! MAX_N_ANGLES, 0:MAX_N_LAYERS
+
+    REAL(fp), ALLOCATABLE :: s_Level_Refl_DOWN(:,:,:)  ! MAX_N_ANGLES, MAX_N_ANGLES, 0:MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: s_Level_Refl_DOWNT(:,:,:) ! MAX_N_ANGLES, MAX_N_ANGLES, 0:MAX_N_LAYERS
+
+    REAL(fp), ALLOCATABLE :: s_Level_Rad_DOWN(:,:)     ! MAX_N_ANGLES, 0:MAX_N_LAYERS
+    REAL(fp), ALLOCATABLE :: s_Level_Rad_DOWNT(:,:)    ! MAX_N_ANGLES, 0:MAX_N_LAYERS
+
+    REAL(fp), ALLOCATABLE :: Refl_Trans_DOWN(:,:,:)    ! MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
 
 
     !------------------------------------
@@ -221,7 +246,7 @@ MODULE RTV_Define
     REAL(fp), ALLOCATABLE :: EigVa(:,:)
     REAL(fp), ALLOCATABLE :: Exp_x(:,:)
     REAL(fp), ALLOCATABLE :: EigValue(:,:)
-    
+
     ! dimensions, MAX_N_ANGLES, MAX_N_ANGLES, MAX_N_LAYERS
     REAL(fp), ALLOCATABLE :: HH(:,:,:)
     REAL(fp), ALLOCATABLE :: PM(:,:,:)
@@ -261,8 +286,8 @@ MODULE RTV_Define
     REAL(fp), ALLOCATABLE :: Trans(:,:,:,:)      ! n_Angles, n_Angles, 0:MAX_N_DOUBLING, n_Layers
     REAL(fp), ALLOCATABLE :: Inv_BeT(:,:,:,:)    ! n_Angles, n_Angles, 0:MAX_N_DOUBLING, n_Layers
 
-    REAL(fp), ALLOCATABLE :: Source_up(:,:,:)    ! n_Angles, 0:MAX_N_DOUBLING, n_Layers    
-    REAL(fp), ALLOCATABLE :: Source_down(:,:,:)    ! n_Angles, 0:MAX_N_DOUBLING, n_Layers  
+    REAL(fp), ALLOCATABLE :: Source_up(:,:,:)    ! n_Angles, 0:MAX_N_DOUBLING, n_Layers
+    REAL(fp), ALLOCATABLE :: Source_down(:,:,:)    ! n_Angles, 0:MAX_N_DOUBLING, n_Layers
     REAL(fp), ALLOCATABLE :: C1(:,:)             ! n_Angles, n_Layers
     REAL(fp), ALLOCATABLE :: C2(:,:)             ! n_Angles, n_Layers
 
@@ -273,8 +298,8 @@ MODULE RTV_Define
     REAL(fp), ALLOCATABLE :: ADS4(:,:,:,:)       ! n_Angles, n_Angles, 0:MAX_N_AMOM, n_Layers
     REAL(fp), ALLOCATABLE :: ADS(:,:,:)          ! n_Angles, n_Angles, n_Layers
     REAL(fp), ALLOCATABLE :: ADSr(:,:,:)          ! n_Angles, n_Angles, n_Layers
-    REAL(fp), ALLOCATABLE :: ApBS3(:,:,:)                    
-    REAL(fp), ALLOCATABLE :: AmBS4(:,:,:)   
+    REAL(fp), ALLOCATABLE :: ApBS3(:,:,:)
+    REAL(fp), ALLOCATABLE :: AmBS4(:,:,:)
     ! The surface optics forward variables
     TYPE(SOVar_type) :: SOV
 
@@ -345,7 +370,7 @@ CONTAINS
 !
 ! NAME:
 !       RTV_Destroy
-! 
+!
 ! PURPOSE:
 !       Elemental subroutine to re-initialize RTV objects.
 !
@@ -367,16 +392,16 @@ CONTAINS
 
     ! Belts and braces
     RTV%Is_Allocated = .FALSE.
-    
+
   END SUBROUTINE RTV_Destroy
 
-  
+
 !--------------------------------------------------------------------------------
 !:sdoc+:
 !
 ! NAME:
 !       RTV_Create
-! 
+!
 ! PURPOSE:
 !       Elemental subroutine to create an instance of the RTV object.
 !
@@ -394,14 +419,14 @@ CONTAINS
 !                          ATTRIBUTES: INTENT(OUT)
 !
 ! INPUTS:
-!       n_Angles:          Number of 
+!       n_Angles:          Number of
 !                          Must be > 0.
 !                          UNITS:      N/A
 !                          TYPE:       INTEGER
 !                          DIMENSION:  Same as RTV object
 !                          ATTRIBUTES: INTENT(IN)
 !
-!       n_Legendre_Terms:  Number of 
+!       n_Legendre_Terms:  Number of
 !                          Must be > 0.
 !                          UNITS:      N/A
 !                          TYPE:       INTEGER
@@ -426,9 +451,9 @@ CONTAINS
     n_Layers          )
     ! Arguments
     TYPE(RTV_type), INTENT(INOUT) :: RTV
-    INTEGER       , INTENT(IN)  :: n_Angles        
+    INTEGER       , INTENT(IN)  :: n_Angles
     INTEGER       , INTENT(IN)  :: n_Legendre_Terms
-    INTEGER       , INTENT(IN)  :: n_Layers        
+    INTEGER       , INTENT(IN)  :: n_Layers
     INTEGER :: n_Stokes
     INTEGER :: nZ
     ! Local variables
@@ -438,7 +463,7 @@ CONTAINS
     n_Stokes = RTV%n_Stokes
     nZ = n_Stokes * n_Angles
     IF ( n_Angles < 1 .OR. n_Legendre_Terms < 1 .OR. n_Layers < 1 ) RETURN
-    
+
     ! Perform the allocation for phase function variables
     ALLOCATE( RTV%Pff(nZ, nZ+n_Stokes, n_Layers) , &
               RTV%Pbb(nZ, nZ+n_Stokes, n_Layers) , &
@@ -450,7 +475,10 @@ CONTAINS
               RTV%n_Factor (n_Angles, n_Layers)       , &
               RTV%sum_fac(0:n_Angles, n_Layers)       , &
               STAT = alloc_stat )
-    IF ( alloc_stat /= 0 ) RETURN
+    IF ( alloc_stat /= 0 ) THEN
+       PRINT *,' error in allocate Pff ', alloc_stat
+       RETURN
+    END IF
 
     ! zero items after allocation to prevent underflow / overflow issues
     RTV%Pff      = ZERO
@@ -462,20 +490,39 @@ CONTAINS
     RTV%Obb      = ZERO
     RTV%n_Factor = ZERO
     RTV%sum_fac  = ZERO
-    
+
 
     ! Perform the allocation for adding-doubling variables
     ALLOCATE( RTV%Inv_Gamma( nZ, nZ, n_Layers)       , &
               RTV%Inv_GammaT(nZ, nZ, n_Layers)       , &
               RTV%Refl_Trans(nZ, nZ, n_Layers)       , &
               RTV%s_Layer_Trans(nZ, nZ, n_Layers)    , &
-              RTV%s_Layer_Refl(nZ, nZ, n_Layers)    , &
+              RTV%s_Layer_Refl(nZ, nZ, n_Layers)     , &
               RTV%s_Level_Refl_UP(nZ, nZ, 0:n_Layers), &
-              RTV%s_Level_Rad_UP(nZ, 0:n_Layers)           , &
-              RTV%s_Layer_Source_UP(  nZ, n_Layers)        , &
-              RTV%s_Layer_Source_DOWN(nZ, n_Layers)        , &
+              RTV%s_Level_Rad_UP(nZ, 0:n_Layers)     , &
+              RTV%s_Layer_Source_UP(  nZ, n_Layers)  , &
+              RTV%s_Layer_Source_DOWN(nZ, n_Layers)  , &
               STAT = alloc_stat )
-    IF ( alloc_stat /= 0 ) RETURN
+    IF ( alloc_stat /= 0 ) THEN
+      PRINT *,' error in allocate Inv_Gamma ',alloc_stat
+      RETURN
+    END IF
+
+    ! For aircraft level and downward AD calculation
+    ALLOCATE( RTV%s_Level_Rad_UPT(nZ, 0:n_Layers)       , &
+              RTV%s_Level_Rad_DOWN(nZ, 0:n_Layers)      , &
+              RTV%s_Level_Refl_DOWN(nZ, nZ, 0:n_Layers) , &
+              RTV%s_Level_Refl_DOWNT(nZ, nZ, 0:n_Layers), &
+              RTV%s_Level_Rad_DOWNT(nZ, 0:n_Layers)     , &
+              RTV%Inv_Gamma2( nZ, nZ, n_Layers)         , &
+              RTV%Inv_Gamma2T(nZ, nZ, n_Layers)         , &
+              RTV%Inv_Gamma3( nZ, nZ, n_Layers)         , &
+              RTV%Refl_Trans_DOWN(nZ, nZ, n_Layers)     , &
+              STAT = alloc_stat )
+    IF ( alloc_stat /= 0 ) THEN
+      PRINT *,' error in allocate s_Level_Rad_UPT ',alloc_stat
+      RETURN
+    END IF
 
     ! zero items after allocation
     RTV%Inv_Gamma           = ZERO
@@ -487,7 +534,18 @@ CONTAINS
     RTV%s_Level_Rad_UP      = ZERO
     RTV%s_Layer_Source_UP   = ZERO
     RTV%s_Layer_Source_DOWN = ZERO
-    
+
+    ! Add by CD: we don't need to aero the following items for variables of
+    ! aircraft level and downward AD calculation?
+    RTV%s_Level_Rad_UPT     = ZERO
+    RTV%s_Level_Rad_DOWN    = ZERO
+    RTV%s_Level_Refl_DOWN   = ZERO
+    RTV%s_Level_Refl_DOWNT  = ZERO
+    RTV%s_Level_Rad_DOWNT   = ZERO
+    RTV%Inv_Gamma2          = ZERO
+    RTV%Inv_Gamma2T         = ZERO
+    RTV%Inv_Gamma3          = ZERO
+    RTV%Refl_Trans_DOWN     = ZERO
 
     ! Perform the allocation for AMOM variables
     ALLOCATE( RTV%Thermal_C(nZ, n_Layers)        , &
@@ -514,10 +572,13 @@ CONTAINS
               RTV%A5(nZ, nZ, n_Layers)     , &
               RTV%A6(nZ, nZ, n_Layers)     , &
               RTV%Gm_A5(nZ, nZ, n_Layers)  , &
-              RTV%i_Gm_A5(nZ, nZ, n_Layers), & 
+              RTV%i_Gm_A5(nZ, nZ, n_Layers), &
               STAT = alloc_stat )
-    IF ( alloc_stat /= 0 ) RETURN
-    
+    IF ( alloc_stat /= 0 ) THEN
+      PRINT *,' error in allocate Thermal_C ',alloc_stat
+      RETURN
+    END IF
+
     ! zero items after allocation
     RTV%Thermal_C = ZERO
     RTV%EigVa     = ZERO
@@ -548,19 +609,24 @@ CONTAINS
     ! Perform the allocation for SOI variables
     ALLOCATE( RTV%e_Layer_Trans( nZ, n_Layers), &
               RTV%s_Level_IterRad_DOWN( nZ, 0:n_Layers, MAX_N_SOI_ITERATIONS ), &
-              RTV%s_Level_IterRad_UP( nZ, 0:n_Layers, MAX_N_SOI_ITERATIONS ), &  
+              RTV%s_Level_IterRad_UP( nZ, 0:n_Layers, MAX_N_SOI_ITERATIONS ), &
               RTV%EXPFACT(0:MAX_N_DOUBLING), &
               RTV%Number_Doubling(n_Layers), &
-              RTV%Delta_Tau(n_Layers), &      
+              RTV%Delta_Tau(n_Layers), &
               RTV%Refl(nZ, nZ, 0:MAX_N_DOUBLING, n_Layers), &
               RTV%Trans(nZ, nZ, 0:MAX_N_DOUBLING, n_Layers), &
               RTV%Inv_BeT(nZ, nZ, 0:MAX_N_DOUBLING, n_Layers), &
               RTV%C1(nZ, n_Layers), &
               RTV%C2(nZ, n_Layers), &
               RTV%Source_up(nZ, 0:MAX_N_DOUBLING, n_Layers), &
-              RTV%Source_down(nZ, 0:MAX_N_DOUBLING, n_Layers), &   
+              RTV%Source_down(nZ, 0:MAX_N_DOUBLING, n_Layers), &
               STAT = alloc_stat )
+    IF ( alloc_stat /= 0 ) THEN
+       PRINT *,' error in allocate e_Layer_Trans ',alloc_stat
+       RETURN
+    END IF
 
+    ! zero items after allocation
     RTV%e_Layer_Trans        = ZERO
     RTV%s_Level_IterRad_DOWN = ZERO
     RTV%s_Level_IterRad_UP   = ZERO
@@ -576,7 +642,6 @@ CONTAINS
     RTV%Source_down = ZERO
 
 
-    IF ( alloc_stat /= 0 ) RETURN
     IF(RTV%RT_Algorithm_Id == RT_VMOM) THEN
       ALLOCATE( RTV%ADS1(nZ, nZ, MAX_N_AMOM, n_Layers), &
               RTV%ADS2(nZ, nZ, MAX_N_AMOM, n_Layers), &
@@ -587,7 +652,12 @@ CONTAINS
               RTV%AmBS4(nZ, nZ, n_Layers), &
               RTV%ApBS3(nZ, nZ, n_Layers), &
               STAT = alloc_stat )
+      IF ( alloc_stat /= 0 ) THEN
+        PRINT *,' error in allocate ADS1 ',alloc_stat
+        RETURN
+      END IF
 
+      ! zero items after allocation
       RTV%ADS1  = ZERO
       RTV%ADS2  = ZERO
       RTV%ADS3  = ZERO
@@ -597,18 +667,16 @@ CONTAINS
       RTV%AmBS4 = ZERO
       RTV%ApBS3 = ZERO
 
- 
-      IF ( alloc_stat /= 0 ) RETURN
     END IF
     ! Set dimensions
     RTV%n_Layers         = n_Layers
     RTV%n_Angles         = n_Angles
-    
+
     RTV%n_SOI_Iterations = 0
 
     ! Set the allocate flag
     RTV%Is_Allocated = .TRUE.
-    
+
   END SUBROUTINE RTV_Create
-  
+
 END MODULE RTV_Define
