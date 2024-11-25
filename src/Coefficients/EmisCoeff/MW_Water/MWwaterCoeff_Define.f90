@@ -45,6 +45,7 @@ MODULE MWwaterCoeff_Define
   PUBLIC :: MWwaterCoeff_Info
   PUBLIC :: MWwaterCoeff_ReadFile
   PUBLIC :: MWwaterCoeff_WriteFile
+  PUBLIC :: MWwaterCoeff_Equal
 
 
   ! ---------------------

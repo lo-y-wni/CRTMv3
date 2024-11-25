@@ -26,7 +26,7 @@ MODULE MWwaterCoeff_FASTEM5
   ! -----------------
   ! Module parameters
   ! -----------------
-  CHARACTER(*), PARAMETER :: MODULE_VERSION_ID = &
+  CHARACTER(*), PARAMETER :: MODULE_VERSION_ID = ' '
 
   ! No. of Stokes components
   INTEGER , PARAMETER :: N_STOKES = 4

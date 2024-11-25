@@ -74,6 +74,8 @@ list( APPEND crtm_src_files
       Coefficients/EmisCoeff/IR_Snow/IRsnowCoeff_netCDF_IO.f90
       Coefficients/EmisCoeff/MW_Water/MWwaterCoeff_Define.f90
       Coefficients/EmisCoeff/MW_Water/MWwaterLUT/MWwaterLUT_Define.f90
+      Coefficients/EmisCoeff/MW_Water/MWwaterCoeff_CreateFile/MWwaterCoeff_FASTEM6.f90
+      Coefficients/EmisCoeff/MW_Water/MWwaterCoeff_CreateFile/MWwaterCoeff_FASTEM4.f90
       Coefficients/EmisCoeff/SEcategory/SEcategory_Define.f90
       Coefficients/EmisCoeff/SEcategory/SEcategory_IO.f90
       Coefficients/EmisCoeff/SEcategory/SEcategory_netCDF_IO.f90
@@ -210,36 +212,35 @@ list( APPEND crtm_src_files
       Utility/Type_Kinds.f90
       Zeeman/Zeeman_Utility.f90
 )
-
-if(((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")) AND CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  SET_SOURCE_FILES_PROPERTIES(RTSolution/ADA/ADA_Module.f90 APPEND_STRING PROPERTY COMPILE_FLAGS " -check none -check bounds,pointers,uninit")
-endif()
+include(GNUInstallDirs)
 
 # Option to select between shared and static libraries
 option(BUILD_SHARED_LIBS "Build shared libraries instead of static ones" ON)
 
-# Determine the type of library to build
+# Set library type (static or shared)
 set(LIBRARY_TYPE STATIC)
 if(BUILD_SHARED_LIBS)
   set(LIBRARY_TYPE SHARED)
 endif()
 
-# Conditional flags based on the build type and compiler
-if(((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")) AND CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  SET_SOURCE_FILES_PROPERTIES(RTSolution/ADA/ADA_Module.f90 APPEND_STRING PROPERTY COMPILE_FLAGS " -check none -check bounds,pointers,uninit")
-endif()
+# Set module output directory for build and install interfaces
+set(MODULE_DIR module/${PROJECT_NAME}/${CMAKE_Fortran_COMPILER_ID}/${CMAKE_Fortran_COMPILER_VERSION})
 
-# Build the library based on the selected type
-add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${${PROJECT_NAME}_src_files})
+# Build the library
+add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${crtm_src_files})
 
-# Dependencies
+# Link dependencies
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_Fortran)
 target_link_libraries(${PROJECT_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
-# Fortran module output directory for build and install interfaces
-set(MODULE_DIR module/${PROJECT_NAME}/${CMAKE_Fortran_COMPILER_ID}/${CMAKE_Fortran_COMPILER_VERSION})
-set_target_properties(${PROJECT_NAME} PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/${MODULE_DIR})
-install(DIRECTORY ${CMAKE_BINARY_DIR}/${MODULE_DIR}/ DESTINATION ${MODULE_DIR})
+# Set the Fortran module directory for build and install phases
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/${MODULE_DIR})
+
+# Install Fortran modules into the correct destination
+install(DIRECTORY ${CMAKE_BINARY_DIR}/${MODULE_DIR}/ DESTINATION ${CRTM_INSTALL_PREFIX}/${MODULE_DIR})
+
+# Set include directories for build and install separately
 target_include_directories(${PROJECT_NAME} INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${MODULE_DIR}>
-  $<INSTALL_INTERFACE:${MODULE_DIR}>)
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${MODULE_DIR}>  # During the build
+    $<INSTALL_INTERFACE:${MODULE_DIR}>)                  # After install
