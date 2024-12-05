@@ -6,9 +6,33 @@
 foldername="fix_REL-3.1.1.2"
 checksum=58e0a5c698a438a31dc4914fcda39846
 filename="${foldername}.tgz"
-echo "$filename"
 download_url=https://bin.ssec.wisc.edu/pub/s4/CRTM/$filename
 
+usage() {
+    echo "Usage: $0 [-h] [-d TARBALL_PATH/filename.tgz]" 1>&2
+    echo "   Call without flags to download the coefficients and extract to a default location." 1>&2
+    echo "   -h: show help" 1>&2
+    echo "   -d: download tarball to specified location without extracting." 1>&2
+}
+
+DOWNLOAD_ONLY_PATH=""
+while getopts "hd:" opt; do
+  case "$opt" in
+    h)
+      usage
+      exit 0
+      ;;
+    d)
+      DOWNLOAD_ONLY_PATH=$OPTARG
+      ;;
+  esac
+done
+
+if [ -n "${DOWNLOAD_ONLY_PATH}" ]; then
+    echo "Downloading coefficients ${foldername} to file \"${DOWNLOAD_ONLY_PATH}\" and exiting."
+    wget --no-verbose $download_url -O "${DOWNLOAD_ONLY_PATH}"
+    exit 0
+fi
 
 # Check if the fix directory already exists, indicating that no download is needed.
 if [ -d "fix/" ]; then #fix directory exists
