@@ -62,7 +62,6 @@ MODULE CRTM_RTSolution_Define
   PUBLIC :: CRTM_RTSolution_Create
   PUBLIC :: CRTM_RTSolution_Zero
   PUBLIC :: CRTM_RTSolution_Inspect
-  PUBLIC :: CRTM_RTSolution_DefineVersion
   PUBLIC :: CRTM_RTSolution_Compare
   PUBLIC :: CRTM_RTSolution_Statistics
   PUBLIC :: CRTM_RTSolution_InquireFile

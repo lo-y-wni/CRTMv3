@@ -20,7 +20,7 @@ MODULE CRTM_Surface_Define
   ! Intrinsic modules
   USE ISO_Fortran_Env       , ONLY: OUTPUT_UNIT
   ! Module use
-  USE Type_Kinds            , ONLY: fp
+  USE Type_Kinds            , ONLY: Double, Long, fp
   USE Message_Handler       , ONLY: SUCCESS, FAILURE, WARNING, INFORMATION, Display_Message
   USE Compare_Float_Numbers , ONLY: DEFAULT_N_SIGFIG, &
                                     OPERATOR(.EqualTo.), &
@@ -42,10 +42,11 @@ MODULE CRTM_Surface_Define
                                     CRTM_SensorData_Compare, &
                                     CRTM_SensorData_ReadFile, &
                                     CRTM_SensorData_WriteFile
+  use netcdf
   ! Disable implicit typing
   IMPLICIT NONE
 
-
+  
   ! ------------
   ! Visibilities
   ! ------------
@@ -196,7 +197,61 @@ MODULE CRTM_Surface_Define
   REAL(fp), PARAMETER :: DEFAULT_ICE_DENSITY     = 0.9_fp    ! g/cm^3
   REAL(fp), PARAMETER :: DEFAULT_ICE_ROUGHNESS   = ZERO
 
+  ! Input/Output netCDF attributes
+  ! Dimension values
+  ! ...None yet
+    ! Dimension names
+  CHARACTER(*), PARAMETER :: CHANNEL_DIMNAME  = 'n_Channels'
+  CHARACTER(*), PARAMETER :: PROFILE_DIMNAME  = 'n_Profiles'
 
+  ! Gross type of surface determined by coverage
+  REAL(fp) :: Land_Coverage  = ZERO
+  REAL(fp) :: Water_Coverage = ZERO
+  REAL(fp) :: Snow_Coverage  = ZERO
+  REAL(fp) :: Ice_Coverage   = ZERO
+  ! Land surface type data
+  INTEGER  :: Land_Type             = DEFAULT_LAND_TYPE
+  REAL(fp) :: Land_Temperature      = DEFAULT_LAND_TEMPERATURE
+  REAL(fp) :: Soil_Moisture_Content = DEFAULT_SOIL_MOISTURE_CONTENT
+  REAL(fp) :: Canopy_Water_Content  = DEFAULT_CANOPY_WATER_CONTENT
+  REAL(fp) :: Vegetation_Fraction   = DEFAULT_VEGETATION_FRACTION
+  REAL(fp) :: Soil_Temperature      = DEFAULT_SOIL_TEMPERATURE
+  REAL(fp) :: LAI                   = DEFAULT_LAI
+  INTEGER  :: Soil_Type             = DEFAULT_SOIL_TYPE
+  INTEGER  :: Vegetation_Type       = DEFAULT_VEGETATION_TYPE
+  ! Water type data
+  INTEGER  :: Water_Type        = DEFAULT_WATER_TYPE
+  REAL(fp) :: Water_Temperature = DEFAULT_WATER_TEMPERATURE
+  REAL(fp) :: Wind_Speed        = DEFAULT_WIND_SPEED
+  REAL(fp) :: Wind_Direction    = DEFAULT_WIND_DIRECTION
+  REAL(fp) :: Salinity          = DEFAULT_SALINITY
+  ! Snow surface type data
+  INTEGER  :: Snow_Type        = DEFAULT_SNOW_TYPE
+  REAL(fp) :: Snow_Temperature = DEFAULT_SNOW_TEMPERATURE
+  REAL(fp) :: Snow_Depth       = DEFAULT_SNOW_DEPTH
+  REAL(fp) :: Snow_Density     = DEFAULT_SNOW_DENSITY
+  REAL(fp) :: Snow_Grain_Size  = DEFAULT_SNOW_GRAIN_SIZE
+  ! Ice surface type data
+  INTEGER  :: Ice_Type        = DEFAULT_ICE_TYPE
+  REAL(fp) :: Ice_Temperature = DEFAULT_ICE_TEMPERATURE
+  REAL(fp) :: Ice_Thickness   = DEFAULT_ICE_THICKNESS
+  REAL(fp) :: Ice_Density     = DEFAULT_ICE_DENSITY
+  REAL(fp) :: Ice_Roughness   = DEFAULT_ICE_ROUGHNESS
+
+  ! SensorData containing channel brightness temperatures
+  TYPE(CRTM_SensorData_type) :: SensorData
+  
+  ! Variable _FillValue attribute
+  CHARACTER(*),  PARAMETER :: FILLVALUE_ATTNAME = '_FillValue'
+  REAL(Double),  PARAMETER :: FILL_FLOAT = -999.0_fp
+  INTEGER(long), PARAMETER :: FILL_INT   = 0
+  CHARACTER(*) , PARAMETER :: FILL_CHAR  = NF90_FILL_CHAR
+
+  ! Variable types
+  INTEGER, PARAMETER :: INT_TYPE   = NF90_INT
+  INTEGER, PARAMETER :: CHAR_TYPE  = NF90_CHAR
+  INTEGER, PARAMETER :: FLOAT_TYPE = NF90_DOUBLE
+  
   ! ----------------------------
   ! Surface structure definition
   ! ----------------------------
@@ -878,6 +933,13 @@ CONTAINS
 !                       TYPE:       CHARACTER(*)
 !                       DIMENSION:  Scalar
 !                       ATTRIBUTES: INTENT(IN)
+! OPTIONAL INPUTS: 
+!       NetCDF:         Logical flag specifying whether the input file is in 
+!                       NetCDF format.
+!                       UNITS:      N/A
+!                       TYPE:       LOGICAL
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(IN) 
 !
 ! OPTIONAL OUTPUTS:
 !       n_Channels:     The number of spectral channels for which there is
@@ -908,6 +970,114 @@ CONTAINS
 !------------------------------------------------------------------------------
 
   FUNCTION CRTM_Surface_InquireFile( &
+       Filename   , &  ! Input
+       NetCDF     , &  ! Optional Input
+       n_Channels , &  ! Optional output
+       n_Profiles ) &  ! Optional output
+  RESULT( err_stat )
+    ! Arguments
+    CHARACTER(*),           INTENT(IN)   :: Filename
+    LOGICAL     , OPTIONAL, INTENT(IN)   :: NetCDF
+    INTEGER     , OPTIONAL, INTENT(OUT)  :: n_Channels
+    INTEGER     , OPTIONAL, INTENT(OUT)  :: n_Profiles
+     
+    ! Function result
+    INTEGER :: err_stat
+    ! Function parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Surface_InquireFile'
+    ! Function variables
+    CHARACTER(ML) :: msg
+    CHARACTER(ML) :: io_msg
+    INTEGER       :: io_stat
+    INTEGER       :: fid
+    LOGICAL       :: binary
+
+    ! Set up
+    err_stat = SUCCESS
+    ! Check that the file exists
+    IF ( .NOT. File_Exists( TRIM(Filename) ) ) THEN
+      msg = 'File '//TRIM(Filename)//' not found.'
+      CALL Inquire_Cleanup(); RETURN
+    END IF
+    ! ...Check output format
+    binary = .True.
+    if ( PRESENT(NetCDF) ) binary = .NOT. NetCDF
+
+    IF (binary) THEN
+      err_stat = CRTM_Surface_InquireFile_Binary(Filename   , &
+                                                 n_Channels , &
+                                                 n_Profiles )
+    ELSE
+      err_stat = CRTM_Surface_InquireFile_NetCDF(Filename   , &
+                                                 n_Profiles , &
+                                                 n_Channels )
+    END IF
+
+  CONTAINS
+
+    SUBROUTINE Inquire_CleanUp()
+      IF ( File_Open( Filename ) ) THEN
+        CLOSE( fid,IOSTAT=io_stat,IOMSG=io_msg )
+        IF ( io_stat /= SUCCESS ) &
+          msg = TRIM(msg)//'; Error closing input file during error cleanup - '//TRIM(io_msg)
+      END IF
+      err_stat = FAILURE
+      CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+    END SUBROUTINE Inquire_CleanUp
+    
+  END FUNCTION CRTM_Surface_InquireFile
+
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       CRTM_Surface_InquireFile_Binary
+!
+! PURPOSE:
+!       Function to inquire CRTM Surface object files in binary format. 
+!
+! CALLING SEQUENCE:
+!       Error_Status = CRTM_Surface_InquireFile_Binary( Filename        , &
+!                                                n_Channels = n_Channels, &
+!                                                n_Profiles = n_Profiles  )
+!
+! INPUTS:
+!       Filename:       Character string specifying the name of a
+!                       CRTM Surface data file to read.
+!                       UNITS:      N/A
+!                       TYPE:       CHARACTER(*)
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: INTENT(IN)
+!
+! OPTIONAL OUTPUTS:
+!       n_Channels:     The number of spectral channels for which there is
+!                       data in the file. Note that this value will always
+!                       be 0 for a profile-only dataset-- it only has meaning
+!                       for K-matrix data.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+!       n_Profiles:     The number of profiles in the data file.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+! FUNCTION RESULT:
+!       Error_Status:   The return value is an integer defining the error status.
+!                       The error codes are defined in the Message_Handler module.
+!                       If == SUCCESS, the file inquire was successful
+!                          == FAILURE, an unrecoverable error occurred.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+  
+  FUNCTION CRTM_Surface_InquireFile_Binary( &
     Filename   , &  ! Input
     n_Channels , &  ! Optional output
     n_Profiles ) &  ! Optional output
@@ -972,9 +1142,122 @@ CONTAINS
       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
     END SUBROUTINE Inquire_CleanUp
 
-  END FUNCTION CRTM_Surface_InquireFile
+  END FUNCTION CRTM_Surface_InquireFile_Binary
 
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       CRTM_Surface_InquireFile_NetCDF
+!
+! PURPOSE:
+!       Function to inquire CRTM Surface object files in NetCDF format. 
+!
+! CALLING SEQUENCE:
+!       Error_Status = CRTM_Surface_InquireFile_Binary( Filename        , &
+!                                                n_Channels = n_Channels, &
+!                                                n_Profiles = n_Profiles  )
+!
+! INPUTS:
+!       Filename:       Character string specifying the name of a
+!                       CRTM Surface data file to read.
+!                       UNITS:      N/A
+!                       TYPE:       CHARACTER(*)
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: INTENT(IN)
+!
+! OPTIONAL OUTPUTS:
+!       n_Channels:     The number of spectral channels for which there is
+!                       data in the file. Note that this value will always
+!                       be 0 for a profile-only dataset-- it only has meaning
+!                       for K-matrix data.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+!       n_Profiles:     The number of profiles in the data file.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+! FUNCTION RESULT:
+!       Error_Status:   The return value is an integer defining the error status.
+!                       The error codes are defined in the Message_Handler module.
+!                       If == SUCCESS, the file inquire was successful
+!                          == FAILURE, an unrecoverable error occurred.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+  FUNCTION CRTM_Surface_InquireFile_NetCDF( &
+    Filename   , &  ! Input
+    n_Channels , &  ! Output
+    n_Profiles ) &  ! Output
+  RESULT( err_stat )
+    ! Arguments
+    CHARACTER(*),  INTENT(IN)  :: Filename
+    INTEGER     ,  INTENT(OUT) :: n_Profiles
+    INTEGER     ,  INTENT(OUT) :: n_Channels
+    ! Function result
+    INTEGER :: err_stat
+    ! Function parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Surface_InquireFile_NetCDF'
+    ! Function variables
+    CHARACTER(ML) :: msg
+    INTEGER :: io_stat
+    INTEGER :: fid
+    INTEGER :: l, m, j, k
+    LOGICAL :: Close_File
+    INTEGER :: NF90_Status, FileId, VarId, DimId
 
+   ! Set up
+    err_stat = SUCCESS
+    Close_File = .FALSE.
+
+    ! Open the file
+    NF90_Status = NF90_OPEN( Filename,NF90_NOWRITE,FileId )
+    IF ( NF90_Status /= NF90_NOERR ) THEN
+      msg = 'Error opening '//TRIM(Filename)//' for read access - '// &
+            TRIM(NF90_STRERROR( NF90_Status ))
+      CALL Inquire_CleanUp(); RETURN
+    END IF
+
+    ! ...Close the file if any error from here on
+    Close_File = .TRUE.
+
+    ! Get the dimensions
+    ! ...n_Profiles dimension
+    NF90_Status = NF90_INQ_DIMID( FileId,PROFILE_DIMNAME,DimId )
+    IF ( NF90_Status /= NF90_NOERR ) THEN
+       msg = 'Error inquiring dimension ID for '//PROFILE_DIMNAME//' - '// &
+            TRIM(NF90_STRERROR( NF90_Status ))
+       CALL Inquire_CleanUp(); RETURN
+    END IF    
+    NF90_Status = NF90_INQUIRE_DIMENSION( FileId,DimId,Len=n_Profiles )
+    IF ( NF90_Status /= NF90_NOERR ) THEN
+       msg = 'Error reading dimension value for '//PROFILE_DIMNAME//' - '// &
+            TRIM(NF90_STRERROR( NF90_Status ))
+       CALL Inquire_CleanUp(); RETURN
+    END IF
+
+  CONTAINS
+
+    SUBROUTINE Inquire_CleanUp()
+      IF ( Close_File ) THEN
+        NF90_Status = NF90_CLOSE( FileId )
+        IF ( NF90_Status /= NF90_NOERR ) &
+          msg = TRIM(msg)//'; Error closing input file during error cleanup.'
+      END IF
+      err_stat = FAILURE
+      CALL Display_Message( ROUTINE_NAME,msg,err_stat )
+    END SUBROUTINE Inquire_CleanUp
+
+    
+  END FUNCTION CRTM_Surface_InquireFile_NetCDF
 !------------------------------------------------------------------------------
 !:sdoc+:
 !
@@ -996,7 +1279,7 @@ CONTAINS
 !                     Surface format data file to read.
 !                     UNITS:      N/A
 !                     TYPE:       CHARACTER(*)
-!                     DIMENSION:  Scalar
+!         khurts@comcast.net, dluvsanjav@gmail.com, ian.johnson.yi@gmail.com, jbenjam@gmail.com, yi.sheen@gmail.com, ddanielkim7@gmail.com, amybaek20@gmail.com, hd81504@gmail.com, bowenren6218@gmail.com, jcchen23@gmail.com, yrichardren@gmail.com, Leokimisleo@gmail.com, financialecon@gmail.com, jaysonwan2012@gmail.com, yuzhang95@gmail.com, ishaanasingh@icloud.com, vandu.singh@gmail.com, Mrinalb@gmail.com, danielhepro@gmail.com, heyunlong5@gmail.com            DIMENSION:  Scalar
 !                     ATTRIBUTES: INTENT(IN)
 !
 ! OUTPUTS:
@@ -2233,10 +2516,10 @@ CONTAINS
 
     ! Read the gross surface type coverage
     READ( fid,IOSTAT=io_stat,IOMSG=io_msg ) &
-      Coverage_Type, &
-      sfc%Land_Coverage, &
+      Coverage_Type,      &
+      sfc%Land_Coverage,  &
       sfc%Water_Coverage, &
-      sfc%Snow_Coverage, &
+      sfc%Snow_Coverage,  &
       sfc%Ice_Coverage
     IF ( io_stat /= 0 ) THEN
       msg = 'Error reading gross surface type data - '//TRIM(io_msg)

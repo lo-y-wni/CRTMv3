@@ -6,13 +6,14 @@
 !
 !
 ! CREATION HISTORY:
-!       Written by:     Paul van Delst, 23-Feb-2004
-!                       paul.vandelst@noaa.gov
-!       Modified by     Yingtao Ma, 2020/6/11
-!                       yingtao.ma@noaa.gov
-!                       Implemented CMAQ aerosol
+!       Written by:    Paul van Delst, 23-Feb-2004
+!                      paul.vandelst@noaa.gov
 !
-!      Modified by:    Isaac Moradi     isaac.moradi@nasa.gov
+!      Modified by:    Yingtao Ma, 2020/6/11
+!                      yingtao.ma@noaa.gov
+!                      Implemented CMAQ aerosol
+!
+!                      Isaac Moradi     isaac.moradi@nasa.gov
 !                      24-Sept-2021
 !                      Several new variables were added to later simpify the interpolation
 !                      of cloud optical properties
@@ -21,10 +22,14 @@
 !                      30-Nov-2021
 !                      Added Add_Extra_Layers with default value set to .TRUE.
 !
-!       Modified by:    Cheng Dang, 17-Aug-2022
-!                       dangch@ucar.edu
-!                       Add relative humidity calculation
+!                      Cheng Dang, 17-Aug-2022
+!                      dangch@ucar.edu
+!                      Add relative humidity calculation
 !
+!                      Benjamin Johnson, 21-Nov-2024
+!                      Benjamin.T.Johnson@noaa.gov
+!                      Add NetCDF support for Atmosphere inquire, readfile, writefile 
+!  
 
 MODULE CRTM_Atmosphere_Define
 
@@ -99,7 +104,7 @@ MODULE CRTM_Atmosphere_Define
                                    CRTM_Cloud_Zero, &
                                    CRTM_Cloud_IsValid, &
                                    CRTM_Cloud_Inspect, &
-!yma                                   CRTM_Cloud_DefineVersion, &
+
                                    CRTM_Cloud_Compare, &
                                    CRTM_Cloud_SetLayers, &
                                    CRTM_Cloud_ReadFile, &
@@ -121,13 +126,13 @@ MODULE CRTM_Atmosphere_Define
                                    CRTM_Aerosol_Zero, &
                                    CRTM_Aerosol_IsValid, &
                                    CRTM_Aerosol_Inspect, &
-                                   !CRTM_Aerosol_DefineVersion, &
                                    CRTM_Aerosol_Compare, &
                                    CRTM_Aerosol_SetLayers, &
                                    CRTM_Aerosol_ReadFile, &
                                    CRTM_Aerosol_WriteFile
    USE CRTM_Relative_Humidity, ONLY: PPMV_to_MR, MR_to_RH
-
+   USE netcdf
+   
   ! Disable implicit typing
   IMPLICIT NONE
 
@@ -200,7 +205,7 @@ MODULE CRTM_Atmosphere_Define
   PUBLIC :: CRTM_Cloud_Zero
   PUBLIC :: CRTM_Cloud_IsValid
   PUBLIC :: CRTM_Cloud_Inspect
-!yma  PUBLIC :: CRTM_Cloud_DefineVersion
+
   PUBLIC :: CRTM_Cloud_SetLayers
   ! Aerosol entities
   ! ...Parameters
@@ -218,7 +223,7 @@ MODULE CRTM_Atmosphere_Define
   PUBLIC :: CRTM_Aerosol_Zero
   PUBLIC :: CRTM_Aerosol_IsValid
   PUBLIC :: CRTM_Aerosol_Inspect
-  !PUBLIC :: CRTM_Aerosol_DefineVersion
+
   PUBLIC :: CRTM_Aerosol_SetLayers
   PUBLIC :: AerosolCoeff_n_aerosol_categories
   ! Atmosphere entities
@@ -266,7 +271,7 @@ MODULE CRTM_Atmosphere_Define
   PUBLIC :: CRTM_Atmosphere_Zero
   PUBLIC :: CRTM_Atmosphere_IsValid
   PUBLIC :: CRTM_Atmosphere_Inspect
-  !PUBLIC :: CRTM_Atmosphere_DefineVersion
+
   PUBLIC :: CRTM_Atmosphere_Compare
   PUBLIC :: CRTM_Atmosphere_SetLayers
   PUBLIC :: CRTM_Atmosphere_InquireFile
@@ -302,16 +307,16 @@ MODULE CRTM_Atmosphere_Define
     MODULE PROCEDURE Rank2_Inspect
   END INTERFACE CRTM_Atmosphere_Inspect
 
-  INTERFACE CRTM_Atmosphere_ReadFile
-    MODULE PROCEDURE Read_Atmosphere_Rank1
-    MODULE PROCEDURE Read_Atmosphere_Rank2
-  END INTERFACE CRTM_Atmosphere_ReadFile
-
-  INTERFACE CRTM_Atmosphere_WriteFile
-    MODULE PROCEDURE Write_Atmosphere_Rank1
-    MODULE PROCEDURE Write_Atmosphere_Rank2
-  END INTERFACE CRTM_Atmosphere_WriteFile
-
+  INTERFACE CRTM_Atmosphere_ReadFile_Binary
+     MODULE PROCEDURE Read_Atmosphere_Rank1
+     MODULE PROCEDURE Read_Atmosphere_Rank2
+  END INTERFACE CRTM_Atmosphere_ReadFile_Binary
+  
+  INTERFACE CRTM_Atmosphere_WriteFile_Binary
+     MODULE PROCEDURE Write_Atmosphere_Rank1
+     MODULE PROCEDURE Write_Atmosphere_Rank2
+  END INTERFACE CRTM_Atmosphere_WriteFile_Binary
+  
 
   ! -----------------
   ! Module parameters
@@ -426,6 +431,19 @@ MODULE CRTM_Atmosphere_Define
   ! File status on close after write error
   CHARACTER(*), PARAMETER :: WRITE_ERROR_STATUS = 'DELETE'
 
+
+  ! Output netCDF attributes
+  ! G_LONGNAME
+  CHARACTER(*), PARAMETER :: SENSOR_ID_GATTNAME  = 'Sensor_ID'
+  CHARACTER(*), PARAMETER :: WMO_SAT_ID_GATTNAME = 'WMO_Satellite_ID'
+  CHARACTER(*), PARAMETER :: WMO_SEN_ID_GATTNAME = 'WMO_Sensor_ID'
+  CHARACTER(*), PARAMETER :: RT_ALGRTHM_GATTNAME = 'RT_Algorithm_Name'
+
+  ! Dimension names
+  CHARACTER(*), PARAMETER :: CHANNEL_DIMNAME  = 'n_Channels'
+  CHARACTER(*), PARAMETER :: PROFILE_DIMNAME  = 'n_Profiles'
+
+  
   ! -------------------------------
   ! Atmosphere structure definition
   ! -------------------------------
@@ -1462,10 +1480,137 @@ CONTAINS
 !       CRTM_Atmosphere_InquireFile
 !
 ! PURPOSE:
-!       Function to inquire CRTM Atmosphere object files.
+!       Function to inquire CRTM Atmosphere object files in either binary or
+!          netCDF format.
 !
 ! CALLING SEQUENCE:
 !       Error_Status = CRTM_Atmosphere_InquireFile( Filename               , &
+!                                                   NetCDF = NetCDF        , &  
+!                                                   n_Channels = n_Channels, &
+!                                                   n_Profiles = n_Profiles  )
+!
+! INPUTS:
+!       Filename:       Character string specifying the name of a
+!                       CRTM Atmosphere data file to read.
+!                       UNITS:      N/A
+!                       TYPE:       CHARACTER(*)
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: INTENT(IN)
+!
+! OPTIONAL INPUTS:
+!       NetCDF:         Set this logical argument to set output file format.
+!                       If == .FALSE., Binary [DEFAULT].
+!                          == .TRUE.,  NetCDF
+!                       If not specified, default is .FALSE.
+!                       UNITS:      N/A
+!                       TYPE:       LOGICAL
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: INTENT(IN), OPTIONAL
+! 
+! OPTIONAL OUTPUTS:
+!       n_Channels:     The number of spectral channels for which there is
+!                       data in the file. Note that this value will always
+!                       be 0 for a profile-only dataset-- it only has meaning
+!                       for K-matrix data.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+!       n_Profiles:     The number of profiles in the data file.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+! FUNCTION RESULT:
+!       Error_Status:   The return value is an integer defining the error status.
+!                       The error codes are defined in the Message_Handler module.
+!                       If == SUCCESS, the file inquire was successful
+!                          == FAILURE, an unrecoverable error occurred.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+
+  FUNCTION CRTM_Atmosphere_InquireFile( &
+       Filename   , &  ! Input
+       NetCDF     , &  ! Optional input 
+       n_Channels , &  ! Optional output
+       n_Profiles ) &  ! Optional output
+  RESULT( err_stat )
+    ! Arguments
+    CHARACTER(*),           INTENT(IN)  :: Filename
+    LOGICAL     , OPTIONAL, INTENT(IN)  :: NetCDF    
+    INTEGER     , OPTIONAL, INTENT(OUT) :: n_Channels
+    INTEGER     , OPTIONAL, INTENT(OUT) :: n_Profiles
+    ! Function result
+    INTEGER :: err_stat
+    ! Function parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Atmosphere_InquireFile'
+    ! Function variables
+    CHARACTER(ML) :: msg
+    CHARACTER(ML) :: io_msg
+    INTEGER :: io_stat
+    INTEGER :: fid
+    INTEGER :: l, m
+    LOGICAL :: binary
+
+    ! Set up
+    err_stat = SUCCESS
+    ! Check that the file exists
+    IF ( .NOT. File_Exists( TRIM(Filename) ) ) THEN
+       msg = 'File '//TRIM(Filename)//' not found.'
+       CALL Inquire_Cleanup(); RETURN
+    END IF
+    ! ...Check output format
+    binary = .TRUE.
+    if ( PRESENT(NetCDF) ) binary = .NOT. NetCDF
+    
+    IF (binary) THEN
+       err_stat = CRTM_Atmosphere_InquireFile_Binary(Filename   , &
+                                                     n_Channels , &
+                                                     n_Profiles )
+    ELSE
+       err_stat = CRTM_Atmosphere_InquireFile_NetCDF(Filename   , &
+                                                     n_Channels , &
+                                                     n_Profiles )
+    END IF
+    IF ( err_stat /= SUCCESS ) THEN
+       WRITE( msg,'("Error reading Atmosphere into:  ",a)' ) TRIM(Filename)
+       RETURN
+    END IF
+    
+    IF ( PRESENT(n_Profiles) ) n_Profiles = n_Profiles
+    IF ( PRESENT(n_Channels) ) n_Channels = n_Channels
+
+  CONTAINS
+
+    SUBROUTINE Inquire_CleanUp()
+      IF ( File_Open( Filename ) ) THEN
+         CLOSE( fid,IOSTAT=io_stat,IOMSG=io_msg )
+         IF ( io_stat /= SUCCESS ) &
+              msg = TRIM(msg)//'; Error closing input file during error cleanup - '//TRIM(io_msg)
+      END IF
+      err_stat = FAILURE
+      CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+    END SUBROUTINE Inquire_CleanUp
+    
+  END FUNCTION CRTM_Atmosphere_InquireFile
+
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       CRTM_Atmosphere_InquireFile_Binary
+!
+! PURPOSE:
+!       Function to inquire CRTM Atmosphere object files in binary format. 
+!
+! CALLING SEQUENCE:
+!       Error_Status = CRTM_Atmosphere_InquireFile_Binary( Filename               , &
 !                                                   n_Channels = n_Channels, &
 !                                                   n_Profiles = n_Profiles  )
 !
@@ -1505,7 +1650,7 @@ CONTAINS
 !:sdoc-:
 !------------------------------------------------------------------------------
 
-  FUNCTION CRTM_Atmosphere_InquireFile( &
+  FUNCTION CRTM_Atmosphere_InquireFile_Binary( &
     Filename   , &  ! Input
     n_Channels , &  ! Optional output
     n_Profiles ) &  ! Optional output
@@ -1517,7 +1662,7 @@ CONTAINS
     ! Function result
     INTEGER :: err_stat
     ! Function parameters
-    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Atmosphere_InquireFile'
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Atmosphere_InquireFile_Binary'
     ! Function variables
     CHARACTER(ML) :: msg
     CHARACTER(ML) :: io_msg
@@ -1567,8 +1712,120 @@ CONTAINS
       CALL Display_Message( ROUTINE_NAME, msg, err_stat )
     END SUBROUTINE Inquire_CleanUp
 
-  END FUNCTION CRTM_Atmosphere_InquireFile
+  END FUNCTION CRTM_Atmosphere_InquireFile_Binary
 
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       CRTM_Atmosphere_InquireFile_NetCDF
+!
+! PURPOSE:
+!       Function to inquire CRTM Atmosphere object files in netCDF format. 
+!
+! CALLING SEQUENCE:
+!       Error_Status = CRTM_Atmosphere_InquireFile_NetCDF( Filename               , &
+!                                                   n_Channels = n_Channels, &
+!                                                   n_Profiles = n_Profiles  )
+!
+! INPUTS:
+!       Filename:       Character string specifying the name of a
+!                       CRTM Atmosphere data file to read.
+!                       UNITS:      N/A
+!                       TYPE:       CHARACTER(*)
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: INTENT(IN)
+!
+! OPTIONAL OUTPUTS:
+!       n_Channels:     The number of spectral channels for which there is
+!                       data in the file. Note that this value will always
+!                       be 0 for a profile-only dataset-- it only has meaning
+!                       for K-matrix data.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+!       n_Profiles:     The number of profiles in the data file.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!                       ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+! FUNCTION RESULT:
+!       Error_Status:   The return value is an integer defining the error status.
+!                       The error codes are defined in the Message_Handler module.
+!                       If == SUCCESS, the file inquire was successful
+!                          == FAILURE, an unrecoverable error occurred.
+!                       UNITS:      N/A
+!                       TYPE:       INTEGER
+!                       DIMENSION:  Scalar
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+
+  FUNCTION CRTM_Atmosphere_InquireFile_NetCDF( &
+    Filename   , &  ! Input
+    n_Channels , &  ! Optional output
+    n_Profiles ) &  ! Optional output
+  RESULT( err_stat )
+    ! Arguments
+    CHARACTER(*),  INTENT(IN)  :: Filename
+    INTEGER     ,  INTENT(OUT) :: n_Channels
+    INTEGER     ,  INTENT(OUT) :: n_Profiles
+    ! Function result
+    INTEGER :: err_stat
+    ! Function parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Atmosphere_InquireFile_NetCDF'
+    ! Function variables
+    CHARACTER(ML) :: msg
+    INTEGER :: io_stat
+    INTEGER :: fid
+    INTEGER :: l, m, j, k
+    LOGICAL :: Close_File
+    INTEGER :: NF90_Status, FileId, VarId, DimId
+
+    ! Set up
+    err_stat = SUCCESS
+    Close_File = .FALSE.
+
+    ! Open the file
+    NF90_Status = NF90_OPEN( Filename,NF90_NOWRITE,FileId )
+    IF ( NF90_Status /= NF90_NOERR ) THEN
+      msg = 'Error opening '//TRIM(Filename)//' for read access - '// &
+            TRIM(NF90_STRERROR( NF90_Status ))
+      CALL Inquire_CleanUp(); RETURN
+    END IF
+
+    ! Get the dimensions
+    ! ...n_Channels dimension
+    NF90_Status = NF90_INQ_DIMID( FileId,CHANNEL_DIMNAME,DimId )
+    IF ( NF90_Status /= NF90_NOERR ) THEN
+      msg = 'Error inquiring dimension ID for '//CHANNEL_DIMNAME//' - '// &
+            TRIM(NF90_STRERROR( NF90_Status ))
+      CALL Inquire_CleanUp(); RETURN
+    END IF
+    NF90_Status = NF90_INQUIRE_DIMENSION( FileId,DimId,Len=n_Channels )
+    IF ( NF90_Status /= NF90_NOERR ) THEN
+      msg = 'Error reading dimension value for '//CHANNEL_DIMNAME//' - '// &
+            TRIM(NF90_STRERROR( NF90_Status ))
+      CALL Inquire_CleanUp(); RETURN
+    END IF 
+    
+  CONTAINS
+
+    SUBROUTINE Inquire_CleanUp()
+      IF ( Close_File ) THEN
+        NF90_Status = NF90_CLOSE( FileId )
+        IF ( NF90_Status /= NF90_NOERR ) &
+          msg = TRIM(msg)//'; Error closing input file during error cleanup.'
+      END IF
+      err_stat = FAILURE
+      CALL Display_Message( ROUTINE_NAME,msg,err_stat )
+    END SUBROUTINE Inquire_CleanUp
+
+
+  END FUNCTION CRTM_Atmosphere_InquireFile_NetCDF
 
 !------------------------------------------------------------------------------
 !:sdoc+:
@@ -1577,11 +1834,13 @@ CONTAINS
 !       CRTM_Atmosphere_ReadFile
 !
 ! PURPOSE:
-!       Function to read CRTM Atmosphere object files.
+!       Function to read CRTM Atmosphere object files in either binary or
+!          netCDF format.
 !
 ! CALLING SEQUENCE:
 !       Error_Status = CRTM_Atmosphere_ReadFile( Filename               , &
 !                                                Atmosphere             , &
+!                                                NetCDF     = NetCDF    , &
 !                                                Quiet      = Quiet     , &
 !                                                n_Channels = n_Channels, &
 !                                                n_Profiles = n_Profiles  )
@@ -1615,6 +1874,15 @@ CONTAINS
 !                     ATTRIBUTES: INTENT(OUT), ALLOCATABLE
 !
 ! OPTIONAL INPUTS:
+!       NetCDF:       Set this logical argument to set output file format.
+!                     If == .FALSE., Binary [DEFAULT].
+!                        == .TRUE.,  NetCDF
+!                     If not specified, default is .FALSE.
+!                     UNITS:      N/A
+!                     TYPE:       LOGICAL
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN), OPTIONAL
+!
 !       Quiet:        Set this logical argument to suppress INFORMATION
 !                     messages being printed to stdout
 !                     If == .FALSE., INFORMATION messages are OUTPUT [DEFAULT].
@@ -1624,6 +1892,8 @@ CONTAINS
 !                     TYPE:       LOGICAL
 !                     DIMENSION:  Scalar
 !                     ATTRIBUTES: INTENT(IN), OPTIONAL
+!
+!
 !
 ! OPTIONAL OUTPUTS:
 !       n_Channels:   The number of channels for which data was read. Note that
@@ -1652,7 +1922,150 @@ CONTAINS
 !
 !:sdoc-:
 !------------------------------------------------------------------------------
+  FUNCTION CRTM_Atmosphere_ReadFile( &
+                        Filename   , &  ! Input
+                        Atmosphere , &  ! Output
+                        NetCDF     , &  ! Optional input
+                        Quiet      , &  ! Optional input
+                        n_Channels , &  ! Optional output
+                        n_Profiles , &  ! Optional output
+                        Debug      ) &  ! Optional input (Debug output control)
+  RESULT( err_stat )
+    ! Arguments
+    CHARACTER(*),                            INTENT(IN)  :: Filename
+    TYPE(CRTM_Atmosphere_type), ALLOCATABLE, INTENT(OUT) :: Atmosphere(:,:)  ! L x M
+    LOGICAL,          OPTIONAL,              INTENT(IN)  :: NetCDF
+    LOGICAL,          OPTIONAL,              INTENT(IN)  :: Quiet
+    INTEGER,          OPTIONAL,              INTENT(OUT) :: n_Channels       ! L
+    INTEGER,          OPTIONAL,              INTENT(OUT) :: n_Profiles       ! M
+    LOGICAL,          OPTIONAL,              INTENT(IN)  :: Debug
+    ! Function result
+    INTEGER :: err_stat
+    ! Function parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Atmosphere_ReadFile'
+    ! Function variables
+    CHARACTER(ML) :: msg
+    LOGICAL :: noisy
+    LOGICAL :: binary
 
+    ! Set up
+    err_stat = SUCCESS
+    ! ...Check Quiet argument
+    noisy = .TRUE.
+    IF ( PRESENT(Quiet) ) noisy = .NOT. Quiet
+    ! ...Override Quiet settings if debug set.
+    IF ( PRESENT(Debug) ) noisy = Debug
+    ! ...Check output format
+    binary = .True.
+    if ( PRESENT(NetCDF) ) binary = .NOT. NetCDF
+
+    IF (binary) THEN
+      err_stat = CRTM_Atmosphere_ReadFile_Binary(Filename   , &  !** Interface to Rank1 / Rank2 output
+                                                 Atmosphere , &
+                                                 noisy      , &
+                                                 n_Channels , &
+                                                 n_Profiles , &
+                                                 Debug         )
+    ELSE
+      err_stat = CRTM_Atmosphere_ReadFile_NetCDF(Filename   , &  !** Interface necessary?
+                                                 Atmosphere , &
+                                                 noisy        )
+    END IF
+    IF ( err_stat /= SUCCESS ) THEN
+      WRITE( msg,'("Error writing Atmosphere into:  ",a)' ) TRIM(Filename)
+      RETURN
+    END IF
+
+  END FUNCTION CRTM_Atmosphere_ReadFile
+
+  
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       CRTM_Atmosphere_ReadFile_Binary
+!
+! PURPOSE:
+!       Function to read CRTM Atmosphere object files in binary format.
+!
+! CALLING SEQUENCE:
+!       Error_Status = CRTM_Atmosphere_ReadFile_Binary( Filename               , &
+!                                                       Atmosphere             , &
+!                                                       Quiet      = Quiet     , &
+!                                                       n_Channels = n_Channels, &
+!                                                       n_Profiles = n_Profiles, &
+!                                                       Debug = Debug  )
+!
+! INPUTS:
+!       Filename:     Character string specifying the name of an
+!                     Atmosphere format data file to read.
+!                     UNITS:      N/A
+!                     TYPE:       CHARACTER(*)
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN)
+!
+! OUTPUTS:
+!       Atmosphere:   CRTM Atmosphere object array containing the Atmosphere
+!                     data. Note the following meanings attributed to the
+!                     dimensions of the object array:
+!                     Rank-1: Only profile data are to be read in. The file
+!                             does not contain channel information. The
+!                             dimension of the structure is understood to
+!                             be the PROFILE dimension.
+!                     Rank-2: Channel and profile data are to be read in.
+!                             The file contains both channel and profile
+!                             information. The first dimension of the
+!                             structure is the CHANNEL dimension, the second
+!                             is the PROFILE dimension. This is to allow
+!                             K-matrix structures to be read in with the
+!                             same function.
+!                     UNITS:      N/A
+!                     TYPE:       CRTM_Atmosphere_type
+!                     DIMENSION:  Rank-1 or Rank-2
+!                     ATTRIBUTES: INTENT(OUT), ALLOCATABLE
+!
+! OPTIONAL INPUTS:
+!
+!       Quiet:        Set this logical argument to suppress INFORMATION
+!                     messages being printed to stdout
+!                     If == .FALSE., INFORMATION messages are OUTPUT [DEFAULT].
+!                        == .TRUE.,  INFORMATION messages are SUPPRESSED.
+!                     If not specified, default is .FALSE.
+!                     UNITS:      N/A
+!                     TYPE:       LOGICAL
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN), OPTIONAL
+!
+!
+!
+! OPTIONAL OUTPUTS:
+!       n_Channels:   The number of channels for which data was read. Note that
+!                     this value will always be 0 for a profile-only dataset--
+!                     it only has meaning for K-matrix data.
+!                     UNITS:      N/A
+!                     TYPE:       INTEGER
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+!       n_Profiles:   The number of profiles for which data was read.
+!                     UNITS:      N/A
+!                     TYPE:       INTEGER
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: OPTIONAL, INTENT(OUT)
+!
+!
+! FUNCTION RESULT:
+!       Error_Status: The return value is an integer defining the error status.
+!                     The error codes are defined in the Message_Handler module.
+!                     If == SUCCESS, the file read was successful
+!                        == FAILURE, an unrecoverable error occurred.
+!                     UNITS:      N/A
+!                     TYPE:       INTEGER
+!                     DIMENSION:  Scalar
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+  
   FUNCTION Read_Atmosphere_Rank1( &
     Filename   , &  ! Input
     Atmosphere , &  ! Output
@@ -1762,7 +2175,6 @@ CONTAINS
           msg = TRIM(msg)//'; Error closing input file during error cleanup - '//TRIM(io_msg)
       END IF
       IF ( ALLOCATED(Atmosphere) ) THEN
-       !DEALLOCATE(Atmosphere, STAT=alloc_stat, ERRMSG=alloc_msg)
         DEALLOCATE(Atmosphere, STAT=alloc_stat)
         IF ( alloc_stat /= 0 ) &
           msg = TRIM(msg)//'; Error deallocating Atmosphere array during error cleanup - '//&
@@ -1882,7 +2294,6 @@ CONTAINS
           msg = TRIM(msg)//'; Error closing input file during error cleanup - '//TRIM(io_msg)
       END IF
       IF ( ALLOCATED(Atmosphere) ) THEN
-       !DEALLOCATE(Atmosphere, STAT=alloc_stat, ERRMSG=alloc_msg)
         DEALLOCATE(Atmosphere, STAT=alloc_stat)
         IF ( alloc_stat /= 0 ) &
           msg = TRIM(msg)//'; Error deallocating Atmosphere array during error cleanup - '//&
@@ -1902,12 +2313,142 @@ CONTAINS
 !       CRTM_Atmosphere_WriteFile
 !
 ! PURPOSE:
-!       Function to write CRTM Atmosphere object files.
+!       Function to write CRTM Atmosphere object files in either binary or
+!         NetCDF format.
 !
 ! CALLING SEQUENCE:
-!       Error_Status = CRTM_Atmosphere_WriteFile( Filename     , &
-!                                                 Atmosphere   , &
-!                                                 Quiet = Quiet  )
+!       Error_Status = CRTM_Atmosphere_WriteFile( Filename       , &
+!                                                 Atmosphere     , &
+!                                                 NetCDF = NetCDF, &  
+!                                                 Quiet = Quiet  , &
+!                                                 Debug = Debug    )
+!
+! INPUTS:
+!       Filename:     Character string specifying the name of the
+!                     Atmosphere format data file to write.
+!                     UNITS:      N/A
+!                     TYPE:       CHARACTER(*)
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN)
+!
+!       Atmosphere:   CRTM Atmosphere object array containing the Atmosphere
+!                     data. Note the following meanings attributed to the
+!                     dimensions of the Atmosphere array:
+!                     Rank-1: M profiles.
+!                             Only profile data are to be read in. The file
+!                             does not contain channel information. The
+!                             dimension of the array is understood to
+!                             be the PROFILE dimension.
+!                     Rank-2: L channels  x  M profiles
+!                             Channel and profile data are to be read in.
+!                             The file contains both channel and profile
+!                             information. The first dimension of the
+!                             array is the CHANNEL dimension, the second
+!                             is the PROFILE dimension. This is to allow
+!                             K-matrix structures to be read in with the
+!                             same function.
+!                     UNITS:      N/A
+!                     TYPE:       CRTM_Atmosphere_type
+!                     DIMENSION:  Rank-1 (M) or Rank-2 (L x M)
+!                     ATTRIBUTES: INTENT(IN)
+!
+! OPTIONAL INPUTS:
+!       NetCDF:       Set this logical argument to set output file format.
+!                     If == .FALSE., Binary [DEFAULT].
+!                        == .TRUE.,  NetCDF
+!                     If not specified, default is .FALSE.
+!                     UNITS:      N/A
+!                     TYPE:       LOGICAL
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN), OPTIONAL
+!
+!       Quiet:        Set this logical argument to suppress INFORMATION
+!                     messages being printed to stdout
+!                     If == .FALSE., INFORMATION messages are OUTPUT [DEFAULT].
+!                        == .TRUE.,  INFORMATION messages are SUPPRESSED.
+!                     If not specified, default is .FALSE.
+!                     UNITS:      N/A
+!                     TYPE:       LOGICAL
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN), OPTIONAL
+!
+! FUNCTION RESULT:
+!       Error_Status: The return value is an integer defining the error status.
+!                     The error codes are defined in the Message_Handler module.
+!                     If == SUCCESS, the file write was successful
+!                        == FAILURE, an unrecoverable error occurred.
+!                     UNITS:      N/A
+!                     TYPE:       INTEGER
+!                     DIMENSION:  Scalar
+!
+! SIDE EFFECTS:
+!       - If the output file already exists, it is overwritten.
+!       - If an error occurs during *writing*, the output file is deleted before
+!         returning to the calling routine.
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+  
+  FUNCTION CRTM_Atmosphere_WriteFile( &
+                         Filename   , &  ! Input
+                         Atmosphere , &  ! Input
+                         NetCDF     , &  ! Optional input
+                         Quiet      , &  ! Optional input
+                         Debug      ) &  ! Optional input (Debug output control)
+  RESULT( err_stat )
+    ! Arguments
+    CHARACTER(*),               INTENT(IN) :: Filename
+    TYPE(CRTM_Atmosphere_type), INTENT(IN) :: Atmosphere(:,:)
+    LOGICAL,          OPTIONAL, INTENT(IN) :: NetCDF
+    LOGICAL,          OPTIONAL, INTENT(IN) :: Quiet
+    LOGICAL,          OPTIONAL, INTENT(IN) :: Debug
+    ! Function result
+    INTEGER :: err_stat
+    ! Function parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Atmosphere_WriteFile'
+    ! Function variables
+    CHARACTER(ML) :: msg
+    LOGICAL :: noisy
+    LOGICAL :: binary
+    Logical :: debug
+
+
+    ! Set up
+    err_stat = SUCCESS
+    ! ...Check Quiet argument
+    noisy = .TRUE.
+    IF ( PRESENT(Quiet) ) noisy = .NOT. Quiet
+    ! ...Override Quiet settings if debug set.
+    IF ( PRESENT(Debug) ) noisy = Debug
+    ! ...Check output format
+    binary = .True.
+    if ( PRESENT(NetCDF) ) binary = .NOT. NetCDF
+
+
+    IF (binary) THEN
+      err_stat = CRTM_Atmosphere_WriteFile_Binary(Filename, Atmosphere, noisy, Debug)
+    ELSE
+      err_stat = CRTM_Atmosphere_WriteFile_NetCDF(Filename, Atmosphere, noisy)
+    END IF
+    IF ( err_stat /= SUCCESS ) THEN
+      WRITE( msg,'("Error writing Atmosphere into:  ",a)' ) TRIM(Filename)
+      RETURN
+   END IF
+ END FUNCTION CRTM_Atmosphere_WriteFile
+
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       CRTM_Atmosphere_WriteFile_Binary
+!
+! PURPOSE:
+!       Function to write CRTM Atmosphere object files in binary format.
+!
+! CALLING SEQUENCE:
+!       Error_Status = CRTM_Atmosphere_WriteFile_Binary( Filename     , &
+!                                                        Atmosphere   , &
+!                                                        Quiet = Quiet  )
 !
 ! INPUTS:
 !       Filename:     Character string specifying the name of the
@@ -2166,8 +2707,152 @@ CONTAINS
 
   END FUNCTION Write_Atmosphere_Rank2
 
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       CRTM_Atmosphere_WriteFile_NetCDF
+!
+! PURPOSE:
+!       Function to write CRTM Atmosphere object files in NetCDF format.
+!       BTJ Note: We take a different approach vs. RTSolution, all records are
+!                 written to a single netCDF file.
+!
+! CALLING SEQUENCE:
+!       Error_Status = CRTM_Atmosphere_WriteFile_NetCDF( Filename     , &
+!                                                        Atmosphere   , &
+!                                                        Quiet = Quiet  )
+!
+! INPUTS:
+!       Filename:     Character string specifying the name of the
+!                     Atmosphere format data file to write.
+!                     UNITS:      N/A
+!                     TYPE:       CHARACTER(*)
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN)
+!
+!       Atmosphere:   CRTM Atmosphere object array containing the Atmosphere
+!                     data. Note the following meanings attributed to the
+!                     dimensions of the Atmosphere array:
+!                     Rank-1: M profiles.
+!                             Only profile data are to be read in. The file
+!                             does not contain channel information. The
+!                             dimension of the array is understood to
+!                             be the PROFILE dimension.
+!                     Rank-2: L channels  x  M profiles
+!                             Channel and profile data are to be read in.
+!                             The file contains both channel and profile
+!                             information. The first dimension of the
+!                             array is the CHANNEL dimension, the second
+!                             is the PROFILE dimension. This is to allow
+!                             K-matrix structures to be read in with the
+!                             same function.
+!                     UNITS:      N/A
+!                     TYPE:       CRTM_Atmosphere_type
+!                     DIMENSION:  Rank-1 (M) or Rank-2 (L x M)
+!                     ATTRIBUTES: INTENT(IN)
+!
+! OPTIONAL INPUTS:
+!       Quiet:        Set this logical argument to suppress INFORMATION
+!                     messages being printed to stdout
+!                     If == .FALSE., INFORMATION messages are OUTPUT [DEFAULT].
+!                        == .TRUE.,  INFORMATION messages are SUPPRESSED.
+!                     If not specified, default is .FALSE.
+!                     UNITS:      N/A
+!                     TYPE:       LOGICAL
+!                     DIMENSION:  Scalar
+!                     ATTRIBUTES: INTENT(IN), OPTIONAL
+!
+! FUNCTION RESULT:
+!       Error_Status: The return value is an integer defining the error status.
+!                     The error codes are defined in the Message_Handler module.
+!                     If == SUCCESS, the file write was successful
+!                        == FAILURE, an unrecoverable error occurred.
+!                     UNITS:      N/A
+!                     TYPE:       INTEGER
+!                     DIMENSION:  Scalar
+!
+! SIDE EFFECTS:
+!       - If the output file already exists, it is overwritten.
+!       - If an error occurs during *writing*, the output file is deleted before
+!         returning to the calling routine.
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+
+  FUNCTION CRTM_Atmosphere_WriteFile_NetCDF( &
+                         Filename          , &  ! Input
+                         Atmosphere        , &  ! Input
+                         noisy             ) &  ! Input (Debug output control)
+  RESULT( err_stat )
+    ! Arguments
+    CHARACTER(*),               INTENT(IN) :: Filename
+    TYPE(CRTM_Atmosphere_type), INTENT(IN) :: Atmosphere(:,:)
+    LOGICAL,                    INTENT(IN) :: noisy
+    ! Function result
+    INTEGER :: err_stat
+    ! Function parameters
+    CHARACTER(*), PARAMETER :: ROUTINE_NAME = 'CRTM_Atmosphere_WriteFile_netCDF'
+    ! Function variables
+    CHARACTER(ML) :: msg
+    CHARACTER(ML) :: io_msg
+    INTEGER :: io_stat
+    INTEGER :: alloc_stat
+    INTEGER :: fid
+    INTEGER :: l,m,c,s
+    INTEGER :: n_Channels, n_Profiles, rank
+    LOGICAL :: Close_File
+
+    ! NetCDF specific variables
+    INTEGER :: NF90_Status
+    INTEGER :: FileId, VarId
+   
+    rank = SIZE(SHAPE(Atmosphere))  ! Get the rank dynamically
+    
+    IF (rank == 1) THEN
+       n_Channels = SIZE(Atmosphere, DIM=1)
+       n_Profiles = 1
+    ELSE IF (rank == 2) THEN
+       n_Channels = SIZE(Atmosphere, DIM=1)
+       n_Profiles = SIZE(Atmosphere, DIM=2)
+    ELSE
+       PRINT *, "Unsupported rank: ", rank
+       STOP "Error: Unexpected array rank"
+    END IF
+
+    !netCDF structures
+    ! Global attributes are the same for all profiles/channels
+    ! Number of layers in all profiles are the same
+    ! Allocate the output structures
+    ! arrange Atmosphere output
+
+    ! Write to output file
+    ! ...Create output netCDF file
+    !    err_stat = CreateFile_netCDF ( ... )
+    
+    ! ...Close the file if any error from here on
+    ! Write the data items
+     ! 1D outputs
+     ! ... Variables
+     ! 2D outputs
+    ! ... Variables
+
+  CONTAINS
+
+    SUBROUTINE Write_CleanUp()
+      IF ( File_Open( Filename ) ) THEN
+        CLOSE( fid,STATUS=WRITE_ERROR_STATUS,IOSTAT=io_stat,IOMSG=io_msg )
+        IF ( io_stat /= 0 ) &
+          msg = TRIM(msg)//'; Error deleting output file during error cleanup - '//TRIM(io_msg)
+      END IF
+      err_stat = FAILURE
+      CALL Display_Message( ROUTINE_NAME, msg, err_stat )
+    END SUBROUTINE Write_CleanUp
 
 
+    
+  END FUNCTION CRTM_Atmosphere_WriteFile_NetCDF
+    
 !##################################################################################
 !##################################################################################
 !##                                                                              ##
