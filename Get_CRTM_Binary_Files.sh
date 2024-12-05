@@ -9,7 +9,7 @@ filename="${foldername}.tgz"
 download_url=https://bin.ssec.wisc.edu/pub/s4/CRTM/$filename
 
 usage() {
-    echo "Usage: $0 [-h] [-d TARBALL_PATH]" 1>&2
+    echo "Usage: $0 [-h] [-d TARBALL_PATH/filename.tgz]" 1>&2
     echo "   Call without flags to download the coefficients and extract to a default location." 1>&2
     echo "   -h: show help" 1>&2
     echo "   -d: download tarball to specified location without extracting." 1>&2
