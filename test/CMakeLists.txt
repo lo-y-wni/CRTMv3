@@ -74,23 +74,31 @@ else() # Download CRTM coefficients
   set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz) 
   set(checksum "58e0a5c698a438a31dc4914fcda39846") # MD5SUM of fix_REL-3.1.1.2.tgz
   
-  set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
-  set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
-  
-  # Download during CMake configure step
-  message(STATUS "Downloading CRTM coeffs files from: ${DOWNLOAD_URL} to ${DOWNLOAD_DEST}")
-  file(DOWNLOAD ${DOWNLOAD_URL} ${DOWNLOAD_DEST}
-    EXPECTED_MD5 ${checksum}
-    SHOW_PROGRESS)
+  # Check if the CRTM binary tarball is already present otherwise download it.
+  if (DEFINED ENV{CRTM_BINARY_FILES_TARBALL})
+    file(MD5 "$ENV{CRTM_BINARY_FILES_TARBALL}" computed_checksum )
+    if (NOT "${computed_checksum}" STREQUAL "${checksum}")
+      message(FATAL_ERROR "Environment provided CRTM_BINARY_FILES_TARBALL=$ENV{CRTM_BINARY_FILES_TARBALL} had checksum '${computed_checksum}' not matching expected '${checksum}'")
+    endif()
+    message(STATUS "Using CRTM coeffs tarball file CRTM_BINARY_FILES_TARBALL=$ENV{CRTM_BINARY_FILES_TARBALL}")
+    set(DOWNLOAD_DEST "$ENV{CRTM_BINARY_FILES_TARBALL}")
+  else()
+    set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
+    set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
+    message(STATUS "Downloading CRTM coeffs files from: ${DOWNLOAD_URL} to ${DOWNLOAD_DEST}")
+    file(DOWNLOAD ${DOWNLOAD_URL} ${DOWNLOAD_DEST}
+      EXPECTED_MD5 ${checksum}
+      SHOW_PROGRESS)
+  endif()
 
   # -- UNTAR -- 
   
   # Define the directory to untar into
   set(UNTAR_DEST "${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION}")
-	message(STATUS "Checking if ${UNTAR_DEST}/${CRTM_COEFFS_BRANCH} already exists...")
+    message(STATUS "Checking if ${UNTAR_DEST}/${CRTM_COEFFS_BRANCH} already exists...")
   # Only untar if the CHECK_PATH does not exist
   if(NOT EXISTS ${UNTAR_DEST}/${CRTM_COEFFS_BRANCH}/)
-		message(STATUS "Untarring the downloaded file (~2 minutes) to ${UNTAR_DEST}")
+    message(STATUS "Untarring the downloaded file (~2 minutes) to ${UNTAR_DEST}")
     execute_process(COMMAND tar -xzf ${DOWNLOAD_DEST} -C ${UNTAR_DEST}
                     RESULT_VARIABLE result
                     OUTPUT_QUIET ERROR_QUIET)
@@ -411,6 +419,13 @@ add_test(NAME test_hypsometric_eq
          COMMAND $<TARGET_FILE:hypsometric_eq>)
 set_tests_properties(test_hypsometric_eq PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
+# test_MWwater_io
+add_executable(MWwater_IO mains/unit/input_output/test_MWwater/test_MWwater_io.f90)
+target_link_libraries(MWwater_IO PRIVATE crtm)
+add_test(NAME test_MWwater_io
+         COMMAND $<TARGET_FILE:MWwater_IO>)
+set_tests_properties(test_MWwater_io PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
+
 #=================================================================================
 #forward and k_matrix regression tests
 foreach(regtype IN LISTS regression_types)
@@ -517,6 +532,7 @@ CloudCoeff/Little_Endian/CloudCoeff.bin
 CloudCoeff/netCDF/CloudCoeff.nc4
 CloudCoeff/netCDF/CloudCoeff_DDA_Moradi_2022.nc4
 EmisCoeff/MW_Water/Little_Endian/FASTEM6.MWwater.EmisCoeff.bin
+EmisCoeff/MW_Water/Little_Endian/FASTEM4.MWwater.EmisCoeff.bin
 EmisCoeff/IR_Ice/SEcategory/Little_Endian/NPOESS.IRice.EmisCoeff.bin
 EmisCoeff/IR_Ice/SEcategory/netCDF/NPOESS.IRice.EmisCoeff.nc4
 EmisCoeff/IR_Land/SEcategory/Little_Endian/NPOESS.IRland.EmisCoeff.bin
