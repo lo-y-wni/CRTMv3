@@ -21,12 +21,11 @@ MODULE ACCoeff_IO
   USE ACCoeff_Define   , ONLY: ACCoeff_type, OPERATOR(==)
   USE ACCoeff_Binary_IO, ONLY: ACCoeff_Binary_InquireFile, &
                                ACCoeff_Binary_ReadFile   , &
-                               ACCoeff_Binary_WriteFile  , &
-                               ACCoeff_Binary_IOVersion
+                               ACCoeff_Binary_WriteFile
   USE ACCoeff_netCDF_IO, ONLY: ACCoeff_netCDF_InquireFile, &
                                ACCoeff_netCDF_ReadFile   , &
-                               ACCoeff_netCDF_WriteFile  , &
-                               ACCoeff_netCDF_IOVersion
+                               ACCoeff_netCDF_WriteFile
+
   ! Disable implicit typing
   IMPLICIT NONE
   
@@ -39,14 +38,6 @@ MODULE ACCoeff_IO
   PUBLIC :: ACCoeff_ReadFile
   PUBLIC :: ACCoeff_WriteFile
   PUBLIC :: ACCoeff_netCDF_to_Binary
-  PUBLIC :: ACCoeff_IOVersion
-
-
-  ! -----------------
-  ! Module parameters
-  ! -----------------
-  CHARACTER(*), PRIVATE, PARAMETER :: MODULE_VERSION_ID = &
-  
 
 CONTAINS
 
@@ -646,51 +637,5 @@ CONTAINS
     END IF
 
   END FUNCTION ACCoeff_netCDF_to_Binary
-
-
-!--------------------------------------------------------------------------------
-!:sdoc+:
-!
-! NAME:
-!       ACCoeff_IOVersion
-!
-! PURPOSE:
-!       Subroutine to return the version information for the I/O modules.
-!
-! CALLING SEQUENCE:
-!       CALL ACCoeff_IOVersion( Id )
-!
-! OUTPUTS:
-!       Id:     Character string containing the version Id information
-!               for the I/O module(s). If the string length is sufficient,
-!               the version information for all the modules (this, the
-!               Binary I/O, and netCDF I/O modules) are concatenated. Otherwise
-!               only the version id for this module is returned.
-!               UNITS:      N/A
-!               TYPE:       CHARACTER(*)
-!               DIMENSION:  Scalar
-!               ATTRIBUTES: INTENT(OUT)
-!
-!:sdoc-:
-!--------------------------------------------------------------------------------
-
-  SUBROUTINE ACCoeff_IOVersion( Id )
-    CHARACTER(*), INTENT(OUT) :: Id
-    INTEGER, PARAMETER :: CARRIAGE_RETURN = 13
-    INTEGER, PARAMETER :: LINEFEED = 10
-    INTEGER, PARAMETER :: SL = 256
-    CHARACTER(SL)   :: Binary_IO_Id, netCDF_IO_Id
-    CHARACTER(SL*3) :: IO_Id
-    CALL ACCoeff_Binary_IOVersion( Binary_IO_Id )
-    CALL ACCoeff_netCDF_IOVersion( netCDF_IO_Id )
-    IO_Id = MODULE_VERSION_ID//';'//ACHAR(CARRIAGE_RETURN)//ACHAR(LINEFEED)//&
-            '  '//TRIM(Binary_IO_Id)//';'//ACHAR(CARRIAGE_RETURN)//ACHAR(LINEFEED)//&
-            '  '//TRIM(netCDF_IO_Id)
-    IF ( LEN_TRIM(IO_Id) <= LEN(Id) ) THEN
-      Id = IO_Id
-    ELSE
-      Id = MODULE_VERSION_ID
-    END IF
-  END SUBROUTINE ACCoeff_IOVersion
 
 END MODULE ACCoeff_IO

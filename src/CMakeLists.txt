@@ -40,6 +40,7 @@ list( APPEND crtm_src_files
       AtmScatter/CRTM_CloudScatter.f90
       AtmScatter/CRTM_MoleculeScatter.f90
       ChannelInfo/CRTM_ChannelInfo_Define.f90
+      Coefficients/ACCoeff/ACCoeff_IO.f90
       Coefficients/ACCoeff/ACCoeff_Binary_IO.f90
       Coefficients/ACCoeff/ACCoeff_netCDF_IO.f90
       Coefficients/ACCoeff/ACCoeff_Define.f90

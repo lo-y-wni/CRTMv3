@@ -56,7 +56,9 @@ MODULE CRTM_SpcCoeff
                                    SpcCoeff_IsInfraredSensor   , &
                                    SpcCoeff_IsVisibleSensor    , &
                                    SpcCoeff_IsUltravioletSensor
-  USE SpcCoeff_IO          , ONLY: SpcCoeff_ReadFile 
+  USE ACCoeff_Define       , ONLY: ACCoeff_type
+  USE SpcCoeff_IO          , ONLY: SpcCoeff_ReadFile
+  USE ACCoeff_IO           , ONLY: ACCoeff_ReadFile
   USE CRTM_Parameters      , ONLY: CRTM_Set_Max_nChannels  , &
                                    CRTM_Reset_Max_nChannels
   ! Disable all implicit typing
@@ -235,10 +237,11 @@ CONTAINS
     ! Local variables
     CHARACTER(ML) :: msg, pid_msg
     CHARACTER(ML) :: path
-    CHARACTER(ML) :: spccoeff_file
-    LOGICAL :: noisy
+    CHARACTER(ML) :: spccoeff_file, accoeff_file
+    LOGICAL :: noisy, file_exists
     INTEGER :: alloc_stat
     INTEGER :: n, n_sensors
+    TYPE(ACCoeff_type)   :: AC
 
     ! Setup 
     err_stat = SUCCESS
@@ -279,6 +282,7 @@ CONTAINS
       IF( PRESENT(netCDF) ) THEN
         IF( netCDF ) THEN
           spccoeff_file = TRIM(ADJUSTL(path))//TRIM(ADJUSTL(Sensor_ID(n)))//'.SpcCoeff.nc'
+          accoeff_file = TRIM(ADJUSTL(path))//TRIM(ADJUSTL(Sensor_ID(n)))//'.ACCoeff.nc'
         END IF
       END IF
       err_stat = SpcCoeff_ReadFile( &
@@ -289,6 +293,18 @@ CONTAINS
       IF ( err_stat /= SUCCESS ) THEN
         WRITE( msg,'("Error reading SpcCoeff file #",i0,", ",a)') n, TRIM(spccoeff_file)
         CALL Display_Message( ROUTINE_NAME, TRIM(msg)//TRIM(pid_msg), err_stat ); RETURN
+      END IF
+      INQUIRE( file = accoeff_file, exist = file_exists)
+      IF (netCDF .AND. file_exists) THEN
+        err_stat = ACCoeff_ReadFile( &
+          accoeff_file      , &
+          SC(n)%AC          , &
+          netCDF = netCDF   , &
+          Quiet = .NOT. noisy )
+        IF ( err_stat /= SUCCESS ) THEN
+          WRITE( msg,'("Error reading ACCoeff file #",i0,", ",a)') n, TRIM(accoeff_file)
+          CALL Display_Message( ROUTINE_NAME, TRIM(msg)//TRIM(pid_msg), err_stat ); RETURN
+        END IF
       END IF
     END DO
 

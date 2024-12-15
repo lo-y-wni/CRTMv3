@@ -657,7 +657,7 @@ CONTAINS
     Local_Load_CloudCoeff = .TRUE.
     IF( PRESENT(Load_CloudCoeff) ) Local_Load_CloudCoeff = Load_CloudCoeff
     Local_Load_AerosolCoeff = .TRUE.
-    IF( PRESENT(Load_AerosolCoeff) ) Local_Load_AerosolCoeff = Load_AerosolCoeff
+    IF( PRESENT(Load_AerosolCoeff) ) Local_Load_AerosolCoeff = Load_AerosolCoeff 
     ! ...Check dimensionality
     n_Sensors = SIZE(Sensor_ID)
     IF ( SIZE(ChannelInfo) /= n_Sensors ) THEN
@@ -673,40 +673,44 @@ CONTAINS
       CALL Display_Message( ROUTINE_NAME, TRIM(msg)//TRIM(pid_msg), err_stat )
       RETURN
     END IF
-
+  
 
     ! Specify sensor-independent coefficient filenames
     ! ...Default File_Path
-    Default_File_Path = ''
+    IF ( PRESENT(File_Path) ) THEN
+            Default_File_Path = File_Path ! Can be overridden later by NC_File_Path
+    ELSE
+            Default_File_Path = ''
+    END IF
     ! ...Default filenames
     Default_Aerosol_Model       = 'CRTM'
-    Default_AerosolCoeff_File   = 'AerosolCoeff.bin'
+    Default_AerosolCoeff_File   = 'AerosolCoeff.nc'
     Default_Cloud_Model         = 'CRTM'
-    Default_CloudCoeff_File     = 'CloudCoeff.bin'
-    Default_IRwaterCoeff_File   = 'Nalli.IRwater.EmisCoeff.bin'
-    Default_IRlandCoeff_File    = 'NPOESS.IRland.EmisCoeff.bin'
+    Default_CloudCoeff_File     = 'CloudCoeff.nc'
+    Default_IRwaterCoeff_File   = 'Nalli.IRwater.EmisCoeff.nc'
+    Default_IRlandCoeff_File    = 'NPOESS.IRland.EmisCoeff.nc'
     Default_IRsnow_Model        = 'SEcategory'
-    Default_IRsnowCoeff_File    = 'NPOESS.IRsnow.EmisCoeff.bin'
-    Default_IRiceCoeff_File     = 'NPOESS.IRice.EmisCoeff.bin'
-    Default_VISwaterCoeff_File  = 'NPOESS.VISwater.EmisCoeff.bin'
-    Default_VISlandCoeff_File   = 'NPOESS.VISland.EmisCoeff.bin'
-    Default_VISsnowCoeff_File   = 'NPOESS.VISsnow.EmisCoeff.bin'
-    Default_VISiceCoeff_File    = 'NPOESS.VISice.EmisCoeff.bin'
-    Default_MWwaterCoeff_File   = 'FASTEM6.MWwater.EmisCoeff.bin'
+    Default_IRsnowCoeff_File    = 'NPOESS.IRsnow.EmisCoeff.nc'
+    Default_IRiceCoeff_File     = 'NPOESS.IRice.EmisCoeff.nc'
+    Default_VISwaterCoeff_File  = 'NPOESS.VISwater.EmisCoeff.nc'
+    Default_VISlandCoeff_File   = 'NPOESS.VISland.EmisCoeff.nc'
+    Default_VISsnowCoeff_File   = 'NPOESS.VISsnow.EmisCoeff.nc'
+    Default_VISiceCoeff_File    = 'NPOESS.VISice.EmisCoeff.nc'
+    Default_MWwaterCoeff_File   = 'FASTEM6.MWwater.EmisCoeff.nc'
     Default_MWwaterCoeff_Scheme = 'FASTEM6'
     ! ... Default file formats
-    Default_AerosolCoeff_Format = 'Binary'
-    Default_CloudCoeff_Format   = 'Binary'
-    Default_SpcCoeff_Format     = 'Binary'
-    Default_TauCoeff_Format     = 'Binary'
-    Default_IRwaterCoeff_Format = 'Binary'
-    Default_IRlandCoeff_Format  = 'Binary'
-    Default_IRsnowCoeff_Format  = 'Binary'
-    Default_IRiceCoeff_Format   = 'Binary'
-    Default_VISwaterCoeff_Format= 'Binary'
-    Default_VISlandCoeff_Format = 'Binary'
-    Default_VISsnowCoeff_Format = 'Binary'
-    Default_VISiceCoeff_Format  = 'Binary'
+    Default_AerosolCoeff_Format = 'netCDF'
+    Default_CloudCoeff_Format   = 'netCDF'
+    Default_SpcCoeff_Format     = 'netCDF'
+    Default_TauCoeff_Format     = 'netCDF'
+    Default_IRwaterCoeff_Format = 'netCDF'
+    Default_IRlandCoeff_Format  = 'netCDF'
+    Default_IRsnowCoeff_Format  = 'netCDF'
+    Default_IRiceCoeff_Format   = 'netCDF'
+    Default_VISwaterCoeff_Format= 'netCDF'
+    Default_VISlandCoeff_Format = 'netCDF'
+    Default_VISsnowCoeff_Format = 'netCDF'
+    Default_VISiceCoeff_Format  = 'netCDF'
     ! ...Were coefficient models specified?
     IF ( PRESENT(Aerosol_Model       ) ) Default_Aerosol_Model       = TRIM(ADJUSTL(Aerosol_Model))
     IF ( PRESENT(Cloud_Model         ) ) Default_Cloud_Model         = TRIM(ADJUSTL(Cloud_Model))

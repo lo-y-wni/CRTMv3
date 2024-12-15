@@ -599,9 +599,9 @@ CONTAINS
       END IF
 
       IF( (CloudC%N_PHASE_ELEMENTS /= AeroC%N_PHASE_ELEMENTS) .OR. &
-           (RTV(1)%n_Stokes > 1.AND.CloudC%N_PHASE_ELEMENTS < 6) ) THEN
+           (RTV(1)%n_Stokes > 1 .AND. CloudC%N_PHASE_ELEMENTS < 6) ) THEN
          Error_Status = FAILURE
-         WRITE( Message,'("N_PHASE_ELEMENTS NOT RIGHT FW ",i0)' ) CloudC%N_PHASE_ELEMENTS
+         WRITE( Message,'("N_PHASE_ELEMENTS NOT RIGHT FW ",3i0)' ) CloudC%N_PHASE_ELEMENTS, AeroC%N_PHASE_ELEMENTS, RTV(1)%n_Stokes
          CALL Display_Message( ROUTINE_NAME, Message, Error_Status )
          RETURN
       END IF
