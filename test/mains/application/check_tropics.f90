@@ -88,19 +88,41 @@ PROGRAM check_crtm
   INTEGER, PARAMETER :: N_AEROSOLS  = 1
 
   ! Sensor information
-  INTEGER     , PARAMETER :: N_SENSORS = 7
-  CHARACTER(*), PARAMETER :: SENSOR_ID(N_SENSORS) = (/'tms_tropics-01', &
-                                                      'tms_tropics-02', &
-                                                      'tms_tropics-03', &
-                                                      'tms_tropics-04', &
-                                                      'tms_tropics-05', &
-                                                      'tms_tropics-06', &
-                                                      'tms_tropics-07'   /)
+  INTEGER     , PARAMETER :: N_SENSORS = 1
+  CHARACTER(*), PARAMETER :: SENSOR_ID(N_SENSORS) = (/'tms_sn02_v2'/)
 
   ! Some pretend geometry angles. The scan angle is based
   ! on the default Re (earth radius) and h (satellite height)
-  REAL(fp), PARAMETER :: ZENITH_ANGLE = 30.0_fp
-  REAL(fp), PARAMETER :: SCAN_ANGLE   = 26.37293341421_fp
+  REAL(fp) :: ZENITH_ANGLE
+  REAL(fp) :: SCAN_ANGLE  
+
+  REAL(8), PARAMETER :: zenith_angles(         121 ) = (/ &
+     71.367055 ,   69.700592 ,   68.112023 ,   66.585462 ,   65.109475 , &
+     63.675529 ,   62.277077 ,   60.908975 ,   59.567109 ,   58.248128 , &
+     56.949270 ,   55.668227 ,   54.403053 ,   53.152091 ,   51.913917 , &
+     50.687299 ,   49.471165 ,   48.264575 ,   47.066700 ,   45.876806 , &
+     44.694241 ,   43.518419 ,   42.348818 ,   41.184965 ,   40.026433 , &
+     38.872834 ,   37.723816 ,   36.579055 ,   35.438258 ,   34.301154 , &
+     33.167491 ,   32.037041 ,   30.909590 ,   29.784939 ,   28.662905 , &
+     27.543316 ,   26.426011 ,   25.310841 ,   24.197662 ,   23.086344 , &
+     21.976760 ,   20.868792 ,   19.762327 ,   18.657260 ,   17.553487 , &
+     16.450912 ,   15.349443 ,   14.248990 ,   13.149468 ,   12.050794 , &
+     10.952889 ,    9.855675 ,    8.759077 ,    7.663023 ,    6.567440 , &
+      5.472258 ,    4.377410 ,    3.282826 ,    2.188441 ,    1.094188 , &
+      0.000000 ,    1.094188 ,    2.188441 ,    3.282826 ,    4.377410 , &
+      5.472258 ,    6.567440 ,    7.663023 ,    8.759077 ,    9.855675 , &
+     10.952889 ,   12.050794 ,   13.149468 ,   14.248990 ,   15.349443 , &
+     16.450912 ,   17.553487 ,   18.657260 ,   19.762327 ,   20.868792 , &
+     21.976760 ,   23.086344 ,   24.197662 ,   25.310841 ,   26.426011 , &
+     27.543316 ,   28.662905 ,   29.784939 ,   30.909590 ,   32.037041 , &
+     33.167491 ,   34.301154 ,   35.438258 ,   36.579055 ,   37.723816 , &
+     38.872834 ,   40.026433 ,   41.184965 ,   42.348818 ,   43.518419 , &
+     44.694241 ,   45.876806 ,   47.066700 ,   48.264575 ,   49.471165 , &
+     50.687299 ,   51.913917 ,   53.152091 ,   54.403053 ,   55.668227 , &
+     56.949270 ,   58.248128 ,   59.567109 ,   60.908975 ,   62.277077 , &
+     63.675529 ,   65.109475 ,   66.585462 ,   68.112023 ,   69.700592 , &
+     71.367055 /)
+
   ! ============================================================================
 
   ! ---------
@@ -115,7 +137,7 @@ PROGRAM check_crtm
   CHARACTER(256) :: Cloud_Scheme
   INTEGER :: err_stat, alloc_stat
   INTEGER :: n_channels
-  INTEGER :: l, m, n, nc, i
+  INTEGER :: l, m, n, nc, i, nangs, nang
   ! ============================================================================
   ! STEP 3. **** DEFINE THE CRTM INTERFACE STRUCTURES ****
   !
@@ -164,201 +186,207 @@ PROGRAM check_crtm
       Aerosol_Scheme = ' '
   END IF
 
-  DO i = 1,2
-     if (i==2) Coeff_Format = 'Binary'
+  DO i = 1,1
+     IF (i==2) Coeff_Format = 'Binary'
      IF (i==1) Coeff_Format = 'netCDF'
      
-  ! ... Coefficient table format
-  IF ( Coeff_Format == 'Binary' ) THEN
-    AerosolCoeff_Format = 'Binary'
-    AerosolCoeff_File   = 'AerosolCoeff.'//TRIM(Aerosol_Scheme)//'bin'
-    CloudCoeff_Format   = 'Binary'
-    CloudCoeff_File     = 'CloudCoeff.'//TRIM(Cloud_Scheme)//'bin'
-    SpcCoeff_Format     = 'Binary'
-    TauCoeff_Format     = 'Binary'
-  ELSE IF ( Coeff_Format == 'netCDF' ) THEN
-    AerosolCoeff_Format = 'netCDF'
-    AerosolCoeff_File   = 'AerosolCoeff.'//TRIM(Aerosol_Scheme)//'nc4'
-    CloudCoeff_Format   = 'netCDF'
-    CloudCoeff_File     = 'CloudCoeff.'//TRIM(Cloud_Scheme)//'nc4'
-    SpcCoeff_Format     = 'netCDF'
-    TauCoeff_Format     = 'netCDF'
-  END IF
+     ! ... Coefficient table format
+     IF ( Coeff_Format == 'Binary' ) THEN
+        AerosolCoeff_Format = 'Binary'
+        AerosolCoeff_File   = 'AerosolCoeff.'//TRIM(Aerosol_Scheme)//'bin'
+        CloudCoeff_Format   = 'Binary'
+        CloudCoeff_File     = 'CloudCoeff.'//TRIM(Cloud_Scheme)//'bin'
+        SpcCoeff_Format     = 'Binary'
+        TauCoeff_Format     = 'Binary'
+     ELSE IF ( Coeff_Format == 'netCDF' ) THEN
+        AerosolCoeff_Format = 'netCDF'
+        AerosolCoeff_File   = 'AerosolCoeff.'//TRIM(Aerosol_Scheme)//'nc4'
+        CloudCoeff_Format   = 'netCDF'
+        CloudCoeff_File     = 'CloudCoeff.'//TRIM(Cloud_Scheme)//'nc4'
+        SpcCoeff_Format     = 'netCDF'
+        TauCoeff_Format     = 'netCDF'
+     END IF
+     
+!     WRITE( *,'(/5x,"Initializing the CRTM...")' )
+     err_stat = CRTM_Init( SENSOR_ID          , &
+          chinfo             , &
+          Aerosol_Model      , &
+          AerosolCoeff_Format, &
+          AerosolCoeff_File  , &
+          Cloud_Model        , &
+          CloudCoeff_Format  , &
+          CloudCoeff_File    , &
+          SpcCoeff_Format    , &
+          TauCoeff_Format    , &
+          File_Path=COEFFICIENT_PATH      , &
+          NC_File_Path=NC_COEFFICIENT_PATH, &
+          Quiet=.FALSE.)
+     IF ( err_stat /= SUCCESS ) THEN
+        message = 'Error initializing CRTM'
+        CALL Display_Message( PROGRAM_NAME, message, FAILURE )
+        STOP
+     END IF
+     
+     ! 4b. Output some channel information
+     ! -----------------------------------
+     n_channels = SUM(CRTM_ChannelInfo_n_Channels(chinfo))
+!!$!     WRITE( *,'(/5x,"Processing a total of ",i0," channels...")' ) n_channels
+!!$     DO n = 1, N_SENSORS
+!!$!        WRITE( *,'(7x,i0," from ",a)' ) &
+!!$!             CRTM_ChannelInfo_n_Channels(chinfo(n)), TRIM(SENSOR_ID(n))
+!!$     END DO
+     ! ============================================================================
+     
+     
+     
+     ! Begin loop over sensors
+     ! ----------------------
+     Sensor_Loop: DO n = 1, 1
 
-  WRITE( *,'(/5x,"Initializing the CRTM...")' )
-  err_stat = CRTM_Init( SENSOR_ID          , &
-                        chinfo             , &
-                        Aerosol_Model      , &
-                        AerosolCoeff_Format, &
-                        AerosolCoeff_File  , &
-                        Cloud_Model        , &
-                        CloudCoeff_Format  , &
-                        CloudCoeff_File    , &
-                        SpcCoeff_Format    , &
-                        TauCoeff_Format    , &
-                        File_Path=COEFFICIENT_PATH      , &
-                        NC_File_Path=NC_COEFFICIENT_PATH, &
-                        Quiet=.FALSE.)
-  IF ( err_stat /= SUCCESS ) THEN
-    message = 'Error initializing CRTM'
-    CALL Display_Message( PROGRAM_NAME, message, FAILURE )
-    STOP
-  END IF
+        DO nangs = 1,121
+           
+           ! ==========================================================================
+           ! STEP 5. **** ALLOCATE STRUCTURE ARRAYS ****
+           !
+           ! 5a. Determine the number of channels
+           !     for the current sensor
+           ! ------------------------------------
+           n_channels = CRTM_ChannelInfo_n_Channels(chinfo(n))
+           
+           ! 5b. Allocate the ARRAYS
+           ! -----------------------
+           ALLOCATE( rts( n_channels, N_PROFILES ), &
+                STAT = alloc_stat )
+           IF ( alloc_stat /= 0 ) THEN
+              message = 'Error allocating structure arrays'
+              CALL Display_Message( PROGRAM_NAME, message, FAILURE )
+              STOP
+           END IF
+           
+           
+           ! 5c. Allocate the STRUCTURE INTERNALS
+           !     NOTE: Only the Atmosphere structures
+           !           are allocated in this example
+           ! ----------------------------------------
+           ! The input FORWARD structure
+           CALL CRTM_Atmosphere_Create( atm, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
+           IF ( ANY(.NOT. CRTM_Atmosphere_Associated(atm)) ) THEN
+              message = 'Error allocating CRTM Forward Atmosphere structure'
+              CALL Display_Message( PROGRAM_NAME, message, FAILURE )
+              STOP
+           END IF
+           
+!!$           ! The output K-MATRIX structure
+!!$           CALL CRTM_Atmosphere_Create( atm_K, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
+!!$           IF ( ANY(.NOT. CRTM_Atmosphere_Associated(atm_K)) ) THEN
+!!$              message = 'Error allocating CRTM K-matrix Atmosphere structure'
+!!$              CALL Display_Message( PROGRAM_NAME, message, FAILURE )
+!!$              STOP
+!!$           END IF
+!!$           ! ==========================================================================
+           
+           ! ==========================================================================
+           ! STEP 6. **** ASSIGN INPUT DATA ****
+           !
+           ! 6a. Atmosphere and Surface input
+           !     NOTE: that this is the hard part (in my opinion :o). The mechanism by
+           !     by which the atmosphere and surface data are loaded in to their
+           !     respective structures below was done purely to keep the step-by-step
+           !     instructions in this program relatively "clean".
+           ! ------------------------------------------------------------------------
+           CALL Load_Atm_Data()
+           CALL Load_Sfc_Data()
+           DO m = 1, 2
+              DO nc = 1, atm(m)%n_Clouds
+                 WHERE(atm(m)%Cloud(nc)%Water_Content > ZERO) atm(m)%Cloud_Fraction = ZERO
+              END DO
+           END DO
+           
+           ! The true fractional cloud fraction cases
+           atm(3) = atm(1)
+           atm(4) = atm(2)
+           sfc(3) = sfc(1)
+           sfc(4) = sfc(2)
+           DO m = 3, 4
+              DO nc = 1, atm(m)%n_Clouds
+                 WHERE(atm(m)%Cloud(nc)%Water_Content > ZERO) atm(m)%Cloud_Fraction = 0.1426_fp
+              END DO
+           END DO
+           
+           
+           SCAN_ANGLE = DBLE(nangs-61)
+           ZENITH_ANGLE = zenith_angles(nangs)*SIGN(1.0_fp,SCAN_ANGLE)
 
-  ! 4b. Output some channel information
-  ! -----------------------------------
-  n_channels = SUM(CRTM_ChannelInfo_n_Channels(chinfo))
-  WRITE( *,'(/5x,"Processing a total of ",i0," channels...")' ) n_channels
-  DO n = 1, N_SENSORS
-    WRITE( *,'(7x,i0," from ",a)' ) &
-      CRTM_ChannelInfo_n_Channels(chinfo(n)), TRIM(SENSOR_ID(n))
-  END DO
-  ! ============================================================================
-
-
-
-  ! Begin loop over sensors
-  ! ----------------------
-  Sensor_Loop: DO n = 1, N_SENSORS
-
-    ! ==========================================================================
-    ! STEP 5. **** ALLOCATE STRUCTURE ARRAYS ****
-    !
-    ! 5a. Determine the number of channels
-    !     for the current sensor
-    ! ------------------------------------
-    n_channels = CRTM_ChannelInfo_n_Channels(chinfo(n))
-
-    ! 5b. Allocate the ARRAYS
-    ! -----------------------
-    ALLOCATE( rts( n_channels, N_PROFILES ), &
-              atm_K( n_channels, N_PROFILES ), &
-              sfc_K( n_channels, N_PROFILES ), &
-              rts_K( n_channels, N_PROFILES ), &
-              STAT = alloc_stat )
-    IF ( alloc_stat /= 0 ) THEN
-      message = 'Error allocating structure arrays'
-      CALL Display_Message( PROGRAM_NAME, message, FAILURE )
-      STOP
-    END IF
-
-
-    ! 5c. Allocate the STRUCTURE INTERNALS
-    !     NOTE: Only the Atmosphere structures
-    !           are allocated in this example
-    ! ----------------------------------------
-    ! The input FORWARD structure
-    CALL CRTM_Atmosphere_Create( atm, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
-    IF ( ANY(.NOT. CRTM_Atmosphere_Associated(atm)) ) THEN
-      message = 'Error allocating CRTM Forward Atmosphere structure'
-      CALL Display_Message( PROGRAM_NAME, message, FAILURE )
-      STOP
-    END IF
-
-    ! The output K-MATRIX structure
-    CALL CRTM_Atmosphere_Create( atm_K, N_LAYERS, N_ABSORBERS, N_CLOUDS, N_AEROSOLS )
-    IF ( ANY(.NOT. CRTM_Atmosphere_Associated(atm_K)) ) THEN
-      message = 'Error allocating CRTM K-matrix Atmosphere structure'
-      CALL Display_Message( PROGRAM_NAME, message, FAILURE )
-      STOP
-    END IF
-    ! ==========================================================================
-
-    ! ==========================================================================
-    ! STEP 6. **** ASSIGN INPUT DATA ****
-    !
-    ! 6a. Atmosphere and Surface input
-    !     NOTE: that this is the hard part (in my opinion :o). The mechanism by
-    !     by which the atmosphere and surface data are loaded in to their
-    !     respective structures below was done purely to keep the step-by-step
-    !     instructions in this program relatively "clean".
-    ! ------------------------------------------------------------------------
-    CALL Load_Atm_Data()
-    CALL Load_Sfc_Data()
-    DO m = 1, 2
-      DO nc = 1, atm(m)%n_Clouds
-        WHERE(atm(m)%Cloud(nc)%Water_Content > ZERO) atm(m)%Cloud_Fraction = ZERO
-      END DO
-    END DO
-
-    ! The true fractional cloud fraction cases
-    atm(3) = atm(1)
-    atm(4) = atm(2)
-    sfc(3) = sfc(1)
-    sfc(4) = sfc(2)
-    DO m = 3, 4
-      DO nc = 1, atm(m)%n_Clouds
-        WHERE(atm(m)%Cloud(nc)%Water_Content > ZERO) atm(m)%Cloud_Fraction = 0.1426_fp
-      END DO
-    END DO
-
-    ! 6b. Geometry input
-    ! ------------------
-    ! All profiles are given the same value
-    !  The Sensor_Scan_Angle is optional.
-    CALL CRTM_Geometry_SetValue( geo, &
-                                 Sensor_Zenith_Angle = ZENITH_ANGLE, &
-                                 Sensor_Scan_Angle   = SCAN_ANGLE )
-    ! ==========================================================================
-
-    ! ==========================================================================
-    ! STEP 7. **** INITIALIZE THE K-MATRIX ARGUMENTS ****
-    !
-    ! 7a. Zero the K-matrix OUTPUT structures
-    ! ---------------------------------------
-    CALL CRTM_Atmosphere_Zero( atm_K )
-    CALL CRTM_Surface_Zero( sfc_K )
-
-    ! 7b. Inintialize the K-matrix INPUT so
-    !     that the results are dTb/dx
-    ! -------------------------------------
-    rts_K%Radiance               = ZERO
-    rts_K%Brightness_Temperature = ONE
-    ! ==========================================================================
-
-    ! ==========================================================================
-    ! STEP 8. **** CALL THE CRTM FUNCTIONS FOR THE CURRENT SENSOR ****
-    !
-    WRITE( *, '( /5x, "Calling the CRTM functions for ",a,"..." )' ) TRIM(SENSOR_ID(n))
-
-    ! 8a. The forward model
-    ! ---------------------
-    err_stat = CRTM_Forward( atm        , &  ! Input
-                             sfc        , &  ! Input
-                             geo        , &  ! Input
-                             chinfo(n:n), &  ! Input
-                             rts          )  ! Output
-    IF ( err_stat /= SUCCESS ) THEN
-      message = 'Error calling CRTM Forward Model for '//TRIM(SENSOR_ID(n))
-      CALL Display_Message( PROGRAM_NAME, message, FAILURE )
-      STOP
-    END IF
-
-    ! 8b. The K-matrix model
-    ! ----------------------
-    err_stat = CRTM_K_Matrix( atm        , &  ! FORWARD  Input
-                              sfc        , &  ! FORWARD  Input
-                              rts_K      , &  ! K-MATRIX Input
-                              geo        , &  ! Input
-                              chinfo(n:n), &  ! Input
-                              atm_K      , &  ! K-MATRIX Output
-                              sfc_K      , &  ! K-MATRIX Output
-                              rts          )  ! FORWARD  Output
-    IF ( err_stat /= SUCCESS ) THEN
-      message = 'Error calling CRTM K-Matrix Model for '//TRIM(SENSOR_ID(n))
-      CALL Display_Message( PROGRAM_NAME, message, FAILURE )
-      STOP
-    END IF
-    ! ==========================================================================
-
-   ! ============================================================================
-   ! 8c. **** OUTPUT THE RESULTS TO SCREEN ****
-   !
-   ! User should read the user guide or the source code of the routine
-   ! CRTM_RTSolution_Inspect in the file CRTM_RTSolution_Define.f90 to
-   ! select the needed variables for outputs.  These variables are contained
-   ! in the structure RTSolution.
-!!$   DO m = 1, N_PROFILES
+           ! 6b. Geometry input
+           ! ------------------
+           ! All profiles are given the same value
+           !  The Sensor_Scan_Angle is optional.
+           CALL CRTM_Geometry_SetValue( geo, &
+                Sensor_Zenith_Angle = ZENITH_ANGLE, &
+                Sensor_Scan_Angle   = SCAN_ANGLE )
+           ! ==========================================================================
+           
+           ! ==========================================================================
+           ! STEP 7. **** INITIALIZE THE K-MATRIX ARGUMENTS ****
+           !
+           ! 7a. Zero the K-matrix OUTPUT structures
+           ! ---------------------------------------
+!!$           CALL CRTM_Atmosphere_Zero( atm_K )
+!!$           CALL CRTM_Surface_Zero( sfc_K )
+           
+           ! 7b. Inintialize the K-matrix INPUT so
+           !     that the results are dTb/dx
+           ! -------------------------------------
+!!$           rts_K%Radiance               = ZERO
+!!$           rts_K%Brightness_Temperature = ONE
+           ! ==========================================================================
+           
+           ! ==========================================================================
+           ! STEP 8. **** CALL THE CRTM FUNCTIONS FOR THE CURRENT SENSOR ****
+           !
+!           WRITE( *, '( /5x, "Calling the CRTM functions for ",a,"..." )' ) TRIM(SENSOR_ID(n))
+           
+           ! 8a. The forward model
+           ! ---------------------
+           err_stat = CRTM_Forward( atm        , &  ! Input
+                sfc        , &  ! Input
+                geo        , &  ! Input
+                chinfo(n:n), &  ! Input
+                rts          )  ! Output
+           IF ( err_stat /= SUCCESS ) THEN
+              message = 'Error calling CRTM Forward Model for '//TRIM(SENSOR_ID(n))
+              CALL Display_Message( PROGRAM_NAME, message, FAILURE )
+              STOP
+           END IF
+           
+!!$           ! 8b. The K-matrix model
+!!$           ! ----------------------
+!!$           err_stat = CRTM_K_Matrix( atm        , &  ! FORWARD  Input
+!!$                sfc        , &  ! FORWARD  Input
+!!$                rts_K      , &  ! K-MATRIX Input
+!!$                geo        , &  ! Input
+!!$                chinfo(n:n), &  ! Input
+!!$                atm_K      , &  ! K-MATRIX Output
+!!$                sfc_K      , &  ! K-MATRIX Output
+!!$                rts          )  ! FORWARD  Output
+!!$           IF ( err_stat /= SUCCESS ) THEN
+!!$              message = 'Error calling CRTM K-Matrix Model for '//TRIM(SENSOR_ID(n))
+!!$              CALL Display_Message( PROGRAM_NAME, message, FAILURE )
+!!$              STOP
+!!$           END IF
+           ! ==========================================================================
+           
+           ! ============================================================================
+           ! 8c. **** OUTPUT THE RESULTS TO SCREEN ****
+           !
+           ! User should read the user guide or the source code of the routine
+           ! CRTM_RTSolution_Inspect in the file CRTM_RTSolution_Define.f90 to
+           ! select the needed variables for outputs.  These variables are contained
+           ! in the structure RTSolution.
+           
+           DO m = 1, N_PROFILES
+              WRITE(*, '(2i5,2G12.4,1x,12(1x, F10.2))', advance='NO') m,nangs,SCAN_ANGLE, ZENITH_ANGLE, (rts(l,m)%Brightness_Temperature, l=1, n_Channels)
+              WRITE(*, *) 
 !!$     WRITE( *,'(//7x,"Profile ",i0," output for ",a )') m, TRIM(Sensor_Id(n))
 !!$     DO l = 1, n_Channels
 !!$       WRITE( *, '(/5x,"Channel ",i0," results")') chinfo(n)%Sensor_Channel(l)
@@ -370,39 +398,41 @@ PROGRAM check_crtm
 !!$     END DO
 !!$     CALL CRTM_Atmosphere_Inspect(atm(m))
 !!$     CALL CRTM_Surface_Inspect(sfc(m))
-!!$   END DO
+           END DO
+           
+           
+           ! ==========================================================================
+           ! STEP 9. **** CLEAN UP FOR NEXT SENSOR ****
+           !
+           ! 9a. Deallocate the structures
+           ! -----------------------------
+           !           CALL CRTM_Atmosphere_Destroy(atm_K)
+           
+           
+           CALL CRTM_Atmosphere_Destroy(atm)
+           
+           ! 9b. Deallocate the arrays
+           ! -------------------------
+           DEALLOCATE(rts, rts_K, sfc_k, atm_k, STAT = alloc_stat)
+           ! ==========================================================================
+           
 
-
-    ! ==========================================================================
-    ! STEP 9. **** CLEAN UP FOR NEXT SENSOR ****
-    !
-    ! 9a. Deallocate the structures
-    ! -----------------------------
-    CALL CRTM_Atmosphere_Destroy(atm_K)
-    CALL CRTM_Atmosphere_Destroy(atm)
-
-    ! 9b. Deallocate the arrays
-    ! -------------------------
-    DEALLOCATE(rts, rts_K, sfc_k, atm_k, STAT = alloc_stat)
-    ! ==========================================================================
-
-  END DO Sensor_Loop
-
-  ! ==========================================================================
-  ! 10. **** DESTROY THE CRTM ****
-  !
-  WRITE( *, '( /5x, "Destroying the CRTM..." )' )
-  err_stat = CRTM_Destroy( chinfo )
-  IF ( err_stat /= SUCCESS ) THEN
-    message = 'Error destroying CRTM'
-    CALL Display_Message( PROGRAM_NAME, message, FAILURE )
-    STOP
-  END IF
-  ! ==========================================================================
+        END DO !nangs loop        
+        ! ==========================================================================
+        ! 10. **** DESTROY THE CRTM ****
+        !
+!        WRITE( *, '( /5x, "Destroying the CRTM..." )' )
+        err_stat = CRTM_Destroy( chinfo )
+        IF ( err_stat /= SUCCESS ) THEN
+           message = 'Error destroying CRTM'
+           CALL Display_Message( PROGRAM_NAME, message, FAILURE )
+           STOP
+        END IF
+        ! ==========================================================================
+     END DO Sensor_Loop
   END DO
-
-
-
+  
+     
   ! ==========================================================================
   ! 11. **** CREATE A SIGNAL FILE FOR TESTING SUCCESS ****
   !
@@ -410,8 +440,8 @@ PROGRAM check_crtm
   ! to detect success or failure at the shell level
   CALL SignalFile_Create()
   ! ==========================================================================
-
-
+  
+     
 CONTAINS
 
 
