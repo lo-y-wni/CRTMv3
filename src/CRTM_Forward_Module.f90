@@ -489,6 +489,9 @@ CONTAINS
          IF( Opt%n_Stokes > 0 ) THEN
             RTV(:)%n_Stokes = Opt%n_Stokes
             RTV_Clear(:)%n_Stokes = Opt%n_Stokes
+         ELSE
+            RTV(:)%n_Stokes = 0
+            RTV_Clear(:)%n_Stokes = 0
          END IF
          RTV(:)%RT_Algorithm_Id = Opt%RT_Algorithm_Id
          !         IF( Opt%RT_Algorithm_Id == RT_VMOM .and. RTV(1)%n_Stokes == 1) THEN
@@ -1061,6 +1064,7 @@ CONTAINS
                ! mth_Azi = 0 is for an azimuth-averaged value (IR, MW)
                ! ...Initialise radiance
                RTSolution(ln,m)%Radiance = ZERO
+               RTSolution(ln,m)%Stokes   = ZERO
                ! ...Fourier expansion over azimuth angle
                Azimuth_Fourier_Loop: DO mth_Azi = 0, RTV(nt)%n_Azi
 

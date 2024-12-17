@@ -237,7 +237,7 @@ MODULE CRTM_RTSolution_Define
     ! Radiative transfer results for a single channel
     REAL(fp) :: Radiance               = ZERO
     REAL(fp) :: Brightness_Temperature = ZERO
-    REAL(fp) :: Stokes(4)
+    REAL(fp) :: Stokes(4)              = ZERO
     REAL(fp) :: Solar_Irradiance       = ZERO
     REAL(fp) :: Reflectance            = ZERO
     REAL(fp), ALLOCATABLE :: Reflectivity(:)             ! K
@@ -441,16 +441,16 @@ CONTAINS
     RTSolution%Brightness_Temperature  = ZERO
     RTSolution%Solar_Irradiance        = ZERO
     RTSolution%Reflectance             = ZERO
-    RTSolution%Stokes  = ZERO
+    RTSolution%Stokes                  = ZERO
 
     ! Zero out the array data components
     IF ( CRTM_RTSolution_Associated(RTSolution) ) THEN
-      RTSolution%Upwelling_Radiance  = ZERO
-      RTSolution%Upwelling_Overcast_Radiance  = ZERO
-      RTSolution%Layer_Optical_Depth = ZERO
-      RTSolution%Single_Scatter_Albedo = ZERO
-      RTSolution%Reflectivity = ZERO
-      RTSolution%Reflectivity_Attenuated = ZERO
+      RTSolution%Upwelling_Radiance          = ZERO
+      RTSolution%Upwelling_Overcast_Radiance = ZERO
+      RTSolution%Layer_Optical_Depth         = ZERO
+      RTSolution%Single_Scatter_Albedo       = ZERO
+      RTSolution%Reflectivity                = ZERO
+      RTSolution%Reflectivity_Attenuated     = ZERO
     END IF
 
   END SUBROUTINE CRTM_RTSolution_Zero
@@ -498,6 +498,12 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: fmt32 = '(3x,a,es13.6)'   ! print in 32-bit precision
     CHARACTER(len=*), PARAMETER :: fmt = fmt64               ! choose 64-bit precision
 
+    CHARACTER(len=*), PARAMETER :: fmt64_4 = '(3x,a,4es22.15)'  ! print in 64-bit precision
+    CHARACTER(len=*), PARAMETER :: fmt32_4 = '(3x,a,4es13.6)'   ! print in 32-bit precision
+    CHARACTER(len=*), PARAMETER :: fmt_4 = fmt64_4               ! choose 64-bit precision
+
+    
+    
     ! Setup
     fid = OUTPUT_UNIT
     IF ( PRESENT(Unit) ) THEN
@@ -527,7 +533,7 @@ CONTAINS
     WRITE(fid,fmt) "Brightness Temperature        : ", RTSolution%Brightness_Temperature
     WRITE(fid,fmt) "Solar Irradiance              : ", RTSolution%Solar_Irradiance
     WRITE(fid,fmt) "Reflectance                   : ", RTSolution%Reflectance
-    WRITE(fid,fmt) "Stokes                        : ", RTSolution%Stokes
+    WRITE(fid,fmt_4) "Stokes(1:4)                 : ", RTSolution%Stokes(1:4)
     IF ( CRTM_RTSolution_Associated(RTSolution) ) THEN
       WRITE(fid,'(3x,"n_Layers : ",i0)') RTSolution%n_Layers
       WRITE(fid,'(3x,"Upwelling Overcast Radiance :")')
