@@ -9,7 +9,7 @@ project("CRTM_Tests" VERSION 3.1.1 LANGUAGES Fortran C)
 enable_testing ()
 
 
-message (STATUS "Building tests for CRTM v${PROJECT_VERSION}.") 
+message (STATUS "Building tests for CRTM v${PROJECT_VERSION}.")
 
 list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 set( CMAKE_DIRECTORY_LABELS ${PROJECT_NAME} )
@@ -56,8 +56,8 @@ endif()
 
 
 
-# If local path to testfiles is defined don't download 
-IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
+# If local path to testfiles is defined don't download
+IF(EXISTS  ${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION}/fix_REL-3.1.1.2/fix)
   set( CRTM_COEFFS_PATH ${CMAKE_SOURCE_DIR} )
   message(STATUS "use LOCAL_PATH_JEDI_TESTFILES: ${CRTM_COEFFS_PATH}/fix")
   message("Using existing local fix directory instead of downloading.")
@@ -65,26 +65,26 @@ IF(EXISTS  ${CMAKE_SOURCE_DIR}/fix)
 
 else() # Download CRTM coefficients
   set( CRTM_COEFFS_BRANCH_PREFIX "" )  #preserves the structure of the paths that have been used in jedi previously vs the local path above
-  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.2" ) 
-  
+  set( CRTM_COEFFS_BRANCH "fix_REL-3.1.1.2" )
+
   set(CRTM_COEFFS_PATH ${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION})
   file(MAKE_DIRECTORY ${CRTM_COEFFS_PATH})
-  
+
   set(DOWNLOAD_BASE_URL "https://bin.ssec.wisc.edu/pub/s4/CRTM/")
-  set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz) 
+  set(test_files_dirname ${CRTM_COEFFS_BRANCH}.tgz)
   set(checksum "58e0a5c698a438a31dc4914fcda39846") # MD5SUM of fix_REL-3.1.1.2.tgz
-  
+
   set(DOWNLOAD_URL "${DOWNLOAD_BASE_URL}/${test_files_dirname}")
   set(DOWNLOAD_DEST "${CRTM_COEFFS_PATH}/${test_files_dirname}")
-  
+
   # Download during CMake configure step
   message(STATUS "Downloading CRTM coeffs files from: ${DOWNLOAD_URL} to ${DOWNLOAD_DEST}")
   file(DOWNLOAD ${DOWNLOAD_URL} ${DOWNLOAD_DEST}
     EXPECTED_MD5 ${checksum}
     SHOW_PROGRESS)
 
-  # -- UNTAR -- 
-  
+  # -- UNTAR --
+
   # Define the directory to untar into
   set(UNTAR_DEST "${CMAKE_BINARY_DIR}/test_data/${PROJECT_VERSION}")
 	message(STATUS "Checking if ${UNTAR_DEST}/${CRTM_COEFFS_BRANCH} already exists...")
@@ -141,7 +141,7 @@ list( APPEND User_Emissivity_Sensor_Ids
 list( APPEND SOI_Sensor_Ids
         atms_n21
         cris-fsr_n21
-        v.abi_g18 
+        v.abi_g18
         atms_npp
         cris399_npp
         v.abi_gr
@@ -152,7 +152,7 @@ list( APPEND SOI_Sensor_Ids
 list( APPEND VerticalCoordinates_Sensor_Ids
         atms_n21
         cris-fsr_n21
-        v.abi_g18 
+        v.abi_g18
         atms_npp
         cris399_npp
         v.abi_gr
@@ -251,7 +251,7 @@ target_link_libraries(check_tropics PRIVATE crtm)
 
 add_executable(test_check_crtm mains/application/check_crtm.F90)
 target_link_libraries(test_check_crtm PRIVATE crtm)
-add_test(NAME test_check_crtm 
+add_test(NAME test_check_crtm
          COMMAND test_check_crtm)
 set_tests_properties(test_check_crtm PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS}")
 
@@ -324,7 +324,7 @@ foreach(testtype IN LISTS ODPS_Utils)
 	target_link_libraries(${testtype} PRIVATE crtm)
 endforeach()
 
-#CloudCoeff utilities 
+#CloudCoeff utilities
 list (APPEND CCoeff_Utils
   CloudCoeff_NC2BIN
 	CloudCoeff_BIN2NC
